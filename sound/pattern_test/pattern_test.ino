@@ -2,15 +2,20 @@
   BeatBlocks — simple pattern array test
   Board: ESP32-S3
   Amp:   MAX98357A
+  Tempo: Bourns PDB181-K420K-103B 10 kΩ pot
 
-  Edit kick[] / snare[] (len=8) and bpm, then flash.
+  Edit kick[] / snare[] (len=8), then flash.
   1 = block present, 0 = empty
   Two steps per beat (eight steps per loop).
+  BPM comes from the tempo pot (50–170).
 
   Wiring:
     BCLK → GPIO 9
     LRC  → GPIO 8
     DIN  → GPIO 10
+    Pot outer → 3.3 V
+    Pot wiper → GPIO 4
+    Pot outer → GND
 */
 
 #include <Arduino.h>
@@ -22,6 +27,7 @@
 #define I2S_BCLK 9
 #define I2S_LRC  8
 #define I2S_DIN  10
+#define TEMPO_POT_PIN 4
 
 #if KICK_SAMPLE_RATE != SNARE_SAMPLE_RATE
 #error "kick and snare sample rates must match"
@@ -29,6 +35,8 @@
 
 static const int kSampleRate = KICK_SAMPLE_RATE;
 static const int kNumSteps = 8;
+static const int kBpmMin = 50;
+static const int kBpmMax = 170;
 static const i2s_data_bit_width_t kBits = I2S_DATA_BIT_WIDTH_16BIT;
 static const i2s_mode_t kMode = I2S_MODE_STD;
 static const i2s_slot_mode_t kSlot = I2S_SLOT_MODE_STEREO;
@@ -36,12 +44,32 @@ static const i2s_slot_mode_t kSlot = I2S_SLOT_MODE_STEREO;
 // --- edit these to test rhythms ---
 static const int8_t kick[kNumSteps]  = {1, 1, 0, 1, 1, 0, 1, 1};
 static const int8_t snare[kNumSteps] = {1, 0, 1, 0, 1, 0, 1, 0};
-static const int bpm = 96;
 // ----------------------------------
 
 I2SClass i2s;
+static float bpmFiltered = 96.0f;
 
-static int stepDurationMs() {
+static int readBpmFromPot() {
+  // Average a few samples to reduce ADC noise.
+  uint32_t sum = 0;
+  for (int i = 0; i < 8; i++) {
+    sum += analogRead(TEMPO_POT_PIN);
+  }
+  const int raw = (int)(sum / 8);
+
+  // Map full ADC range to BPM. Swap ends on the pot if direction feels reversed.
+  const int bpm = map(raw, 0, 4095, kBpmMin, kBpmMax);
+  return constrain(bpm, kBpmMin, kBpmMax);
+}
+
+static int currentBpm() {
+  const int measured = readBpmFromPot();
+  // Light smoothing so tempo doesn't chatter every step.
+  bpmFiltered = (0.80f * bpmFiltered) + (0.20f * (float)measured);
+  return constrain((int)(bpmFiltered + 0.5f), kBpmMin, kBpmMax);
+}
+
+static int stepDurationMs(int bpm) {
   // Two steps per beat → step ms = 60000 / bpm / 2
   return 60000 / bpm / 2;
 }
@@ -160,7 +188,12 @@ void setup() {
   delay(500);
   Serial.println();
   Serial.println("BeatBlocks pattern test");
-  Serial.printf("bpm=%d  stepMs=%d\n", bpm, stepDurationMs());
+  Serial.printf("tempo pot on GPIO %d → %d..%d BPM\n", TEMPO_POT_PIN, kBpmMin, kBpmMax);
+
+  analogReadResolution(12);
+  analogSetPinAttenuation(TEMPO_POT_PIN, ADC_11db);
+  pinMode(TEMPO_POT_PIN, INPUT);
+
   Serial.print("kick : [");
   for (int i = 0; i < kNumSteps; i++) {
     Serial.print((int)kick[i]);
@@ -178,6 +211,9 @@ void setup() {
   }
   Serial.println(']');
 
+  bpmFiltered = (float)readBpmFromPot();
+  Serial.printf("initial bpm=%d\n", (int)(bpmFiltered + 0.5f));
+
   i2s.setPins(I2S_BCLK, I2S_LRC, I2S_DIN);
   if (!i2s.begin(kMode, kSampleRate, kBits, kSlot)) {
     Serial.println("Failed to initialize I2S!");
@@ -186,12 +222,17 @@ void setup() {
     }
   }
 
-  Serial.println("I2S ready — looping pattern");
+  Serial.println("I2S ready — looping pattern (twist pot to change tempo)");
 }
 
 void loop() {
-  const int stepMs = stepDurationMs();
+  const int bpm = currentBpm();
+  const int stepMs = stepDurationMs(bpm);
+  Serial.printf("bpm=%d stepMs=%d\n", bpm, stepMs);
+
   for (int i = 0; i < kNumSteps; i++) {
-    playStep(kick[i] != 0, snare[i] != 0, stepMs);
+    // Re-read tempo each step so the knob responds within one loop.
+    const int liveBpm = currentBpm();
+    playStep(kick[i] != 0, snare[i] != 0, stepDurationMs(liveBpm));
   }
 }
