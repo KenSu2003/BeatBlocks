@@ -12,14 +12,24 @@ ESP32-S3 → MAX98357A I²S amp → 4 Ω / 3 W speaker
 
 Speaker connects to the amp speaker terminals (+ / −).
 
-## Flash the tone test
+## Flash sketches
 
 ```bash
-arduino-cli compile --fqbn esp32:esp32:esp32s3 sound/i2s_tone_test
-arduino-cli upload -p PORT --fqbn esp32:esp32:esp32s3 sound/i2s_tone_test
-arduino-cli monitor -p PORT -c baudrate=115200
+./sound/flash.sh              # kick + snare sample test (default)
+./sound/flash.sh i2s_tone_test  # original 440 Hz beep
 ```
 
-Replace `PORT` with your board port (for example `/dev/cu.usbmodem101`).
+Or manually:
 
-Expected result: a short 440 Hz beep about once per second.
+```bash
+arduino-cli compile --fqbn esp32:esp32:esp32s3 sound/drum_samples
+arduino-cli upload -p PORT --fqbn esp32:esp32:esp32s3 sound/drum_samples
+```
+
+Expected `drum_samples` result: repeating **kick, snare, kick, snare**.
+
+Regenerate PCM headers (optional):
+
+```bash
+.venv/bin/python sound/generate_samples.py
+```

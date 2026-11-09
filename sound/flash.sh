@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# Compile and upload the BeatBlocks I2S tone test to an ESP32-S3.
+# Compile and upload BeatBlocks sound sketches to an ESP32-S3.
+# Usage: ./sound/flash.sh [sketch_name]
+# Default sketch: drum_samples
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SKETCH="$ROOT/sound/i2s_tone_test"
+SKETCH_NAME="${1:-drum_samples}"
+SKETCH="$ROOT/sound/$SKETCH_NAME"
 
 # DevKitC-1-N8R8 defaults: 8MB flash, native USB CDC, slower upload for reliability.
 FQBN="${FQBN:-esp32:esp32:esp32s3:UploadSpeed=115200,USBMode=hwcdc,CDCOnBoot=cdc,FlashSize=8M,PSRAM=opi,PartitionScheme=default_8MB}"
