@@ -15,20 +15,20 @@ Speaker connects to the amp speaker terminals (+ / −).
 ## Flash sketches
 
 ```bash
-./sound/flash.sh              # kick + snare sample test (default)
-./sound/flash.sh i2s_tone_test  # original 440 Hz beep
+./sound/flash.sh                 # pattern_test (default): kick[] + snare[] len=8
+./sound/flash.sh drum_samples    # alternating kick/snare hits
+./sound/flash.sh i2s_tone_test   # original 440 Hz beep
 ```
 
-Or manually:
+Edit the arrays in `sound/pattern_test/pattern_test.ino`:
 
-```bash
-arduino-cli compile --fqbn esp32:esp32:esp32s3 sound/drum_samples
-arduino-cli upload -p PORT --fqbn esp32:esp32:esp32s3 sound/drum_samples
+```cpp
+const int8_t kick[8]  = {1, 0, 0, 0, 1, 0, 0, 0};
+const int8_t snare[8] = {0, 0, 1, 0, 0, 0, 1, 0};
+const int bpm = 96;
 ```
 
-Expected `drum_samples` result: repeating **kick, snare, kick, snare**.
-
-Regenerate PCM headers (optional):
+Regenerate PCM headers (optional; writes into both sketch folders):
 
 ```bash
 .venv/bin/python sound/generate_samples.py

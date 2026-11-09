@@ -8,7 +8,11 @@ from pathlib import Path
 import numpy as np
 
 SR = 44100
-OUT = Path(__file__).resolve().parent / "drum_samples"
+ROOT = Path(__file__).resolve().parent
+OUT_DIRS = (
+    ROOT / "drum_samples",
+    ROOT / "pattern_test",
+)
 
 
 def soft_limit(x: np.ndarray, drive: float = 1.35) -> np.ndarray:
@@ -121,9 +125,12 @@ def write_header(path: Path, name: str, data: np.ndarray, sr: int) -> None:
 
 
 def main() -> None:
-    OUT.mkdir(parents=True, exist_ok=True)
-    write_header(OUT / "kick_pcm.h", "kick", kick(), SR)
-    write_header(OUT / "snare_pcm.h", "snare", snare(), SR)
+    kick_pcm = kick()
+    snare_pcm = snare()
+    for out in OUT_DIRS:
+        out.mkdir(parents=True, exist_ok=True)
+        write_header(out / "kick_pcm.h", "kick", kick_pcm, SR)
+        write_header(out / "snare_pcm.h", "snare", snare_pcm, SR)
 
 
 if __name__ == "__main__":

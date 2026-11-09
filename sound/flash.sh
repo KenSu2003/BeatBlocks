@@ -5,7 +5,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SKETCH_NAME="${1:-drum_samples}"
+SKETCH_NAME="${1:-pattern_test}"
 SKETCH="$ROOT/sound/$SKETCH_NAME"
 
 # DevKitC-1-N8R8 defaults: 8MB flash, native USB CDC, slower upload for reliability.
