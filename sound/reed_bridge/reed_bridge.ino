@@ -10,12 +10,16 @@
 
   Patterns apply at the next bar start.
   Tempo pot on GPIO 4 → 50–170 BPM.
+  Playhead LEDs track the current step.
 
   Wiring:
     BCLK → GPIO 9
     LRC  → GPIO 8
     DIN  → GPIO 10
     Pot → 3.3V / GPIO 4 / GND
+    Playhead LEDs (step 0..7):
+      47, 48, 45, 38, 39, 40, 41, 42
+      each: GPIO → resistor → LED → GND
 */
 
 #include <Arduino.h>
@@ -37,9 +41,23 @@ static const int kSampleRate = KICK_SAMPLE_RATE;
 static const int kNumSteps = 8;
 static const int kBpmMin = 50;
 static const int kBpmMax = 170;
+static const int kLedPins[kNumSteps] = {47, 48, 45, 38, 39, 40, 41, 42};
 static const i2s_data_bit_width_t kBits = I2S_DATA_BIT_WIDTH_16BIT;
 static const i2s_mode_t kMode = I2S_MODE_STD;
 static const i2s_slot_mode_t kSlot = I2S_SLOT_MODE_STEREO;
+
+static void setPlayhead(int step) {
+  for (int i = 0; i < kNumSteps; i++) {
+    digitalWrite(kLedPins[i], (i == step) ? HIGH : LOW);
+  }
+}
+
+static void setupPlayheadLeds() {
+  for (int i = 0; i < kNumSteps; i++) {
+    pinMode(kLedPins[i], OUTPUT);
+    digitalWrite(kLedPins[i], LOW);
+  }
+}
 
 static int8_t kick[kNumSteps]  = {1, 0, 0, 0, 1, 0, 0, 0};
 static int8_t snare[kNumSteps] = {0, 0, 1, 0, 0, 0, 1, 0};
@@ -321,6 +339,9 @@ void setup() {
   Serial.println();
   Serial.println("BeatBlocks reed bridge");
   Serial.println("Send K: / S: / P: patterns from reed_sim UI");
+  Serial.println("Playhead LEDs: 47,48,45,38,39,40,41,42");
+
+  setupPlayheadLeds();
 
   analogReadResolution(12);
   analogSetPinAttenuation(TEMPO_POT_PIN, ADC_11db);
@@ -351,6 +372,7 @@ void loop() {
 
   for (int i = 0; i < kNumSteps; i++) {
     pollSerial();
+    setPlayhead(i);
     const int liveBpm = currentBpm();
     playStep(kick[i] != 0, snare[i] != 0, stepDurationMs(liveBpm));
   }

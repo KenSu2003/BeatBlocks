@@ -22,6 +22,11 @@ Speaker connects to the amp speaker terminals (+ / −).
 
 If turning the knob makes tempo go the wrong way, swap the two outer wires.
 
+## Playhead LEDs (used by `reed_bridge`)
+
+Step order: **47 → 48 → 45 → 38 → 39 → 40 → 41 → 42**  
+Each LED: GPIO → resistor → LED → GND. See `lighting/WIRING.md`.
+
 ## Flash sketches
 
 ```bash
