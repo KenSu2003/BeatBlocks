@@ -25,9 +25,18 @@ If turning the knob makes tempo go the wrong way, swap the two outer wires.
 ## Flash sketches
 
 ```bash
-./sound/flash.sh                 # pattern_test (default): kick[] + snare[] len=8
+./sound/flash.sh reed_bridge     # play patterns sent from reed_sim UI
+./sound/flash.sh                 # pattern_test (default): hard-coded arrays
 ./sound/flash.sh drum_samples    # alternating kick/snare hits
 ./sound/flash.sh i2s_tone_test   # original 440 Hz beep
+```
+
+Reed-switch simulator (browser → USB → ESP32 speaker):
+
+```bash
+MONITOR=0 ./sound/flash.sh reed_bridge
+./sound/reed_sim/serve.sh
+# open http://127.0.0.1:8765 in Chrome/Edge
 ```
 
 Edit the arrays in `sound/pattern_test/pattern_test.ino`:

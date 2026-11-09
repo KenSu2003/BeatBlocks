@@ -42,8 +42,8 @@ static const i2s_mode_t kMode = I2S_MODE_STD;
 static const i2s_slot_mode_t kSlot = I2S_SLOT_MODE_STEREO;
 
 // --- edit these to test rhythms ---
-static const int8_t kick[kNumSteps]  = {1, 1, 0, 1, 1, 0, 1, 1};
-static const int8_t snare[kNumSteps] = {1, 0, 1, 0, 1, 0, 1, 0};
+static const int8_t kick[kNumSteps]  = {1, 0, 1, 0, 1, 0, 1, 0};
+static const int8_t snare[kNumSteps] = {0, 1, 0, 1, 0, 1, 0, 1};
 // ----------------------------------
 
 I2SClass i2s;

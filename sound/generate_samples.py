@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parent
 OUT_DIRS = (
     ROOT / "drum_samples",
     ROOT / "pattern_test",
+    ROOT / "reed_bridge",
 )
 
 
