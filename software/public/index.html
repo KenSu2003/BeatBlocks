@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#eeeae3">
+<meta name="description" content="Place blocks, press Play, and build a beat. A playable demonstration of the BeatBlocks physical music board.">
+<title>BeatBlocks — Play the blocks</title>
+<style>
+:root{--paper:#eeeae3;--ink:#252c30;--muted:#596267;--board:#292e30;--slot:#202526;--cream:#f1ece0;--kick:#92c8da;--snare:#f1ad82;--accent:#195f73;--line:#ccc8bf;--ease:cubic-bezier(.16,1,.3,1)}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input,select{font:inherit}button{cursor:pointer}button:disabled{cursor:default;opacity:.55}button,input,select,summary{touch-action:manipulation}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,a:focus-visible{outline:3px solid #3c859b;outline-offset:5px}::selection{background:#bfdae1;color:#182d34}a{color:var(--accent);text-underline-offset:4px}button{color:inherit}main{max-width:1120px;margin:0 auto;padding:30px 36px 36px}header{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:20px}.brand{font-weight:750;letter-spacing:-.04em;font-size:24px;display:flex;align-items:center;gap:10px}.brand-mark{display:flex;align-items:end;gap:3px;height:22px}.brand-mark i{display:block;background:var(--accent);width:6px;height:15px;border-radius:1px}.brand-mark i:nth-child(2){height:22px}.brand-mark i:last-child{height:10px}.demo-label{color:var(--muted);font-size:13px}.intro{display:flex;justify-content:space-between;align-items:end;gap:24px;padding:28px 0 22px}h1{font:400 clamp(30px,4.5vw,46px)/1.12 Georgia,serif;letter-spacing:-.035em;margin:0 0 10px}p{margin:0} .intro p{color:var(--muted);font-size:15px}.preset{display:flex;flex-direction:column;gap:6px;flex-shrink:0}.preset label{font-size:12px;color:var(--muted)}select{border:1px solid #aaa99f;border-radius:6px;background:transparent;color:var(--ink);padding:8px 30px 8px 10px;max-width:180px}.board{background:var(--board);color:var(--cream);border-radius:18px;padding:25px 30px 26px;box-shadow:0 14px 30px #23262225,0 7px 0 #8b6e4d;position:relative}.board-top{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:22px}.board-label{font-size:12px;letter-spacing:.04em;font-weight:650}.board-top output{font-size:13px;color:#d3d8d6}.power{display:flex;align-items:center;gap:7px;font-size:11px;color:#c3c9c7}.power-dot{width:6px;height:6px;border-radius:50%;background:#9bc6a8}.sequence{display:grid;grid-template-columns:72px repeat(8,minmax(0,1fr));column-gap:12px;row-gap:17px;align-items:center}.step-title{font-size:11px;color:#c0c8c7}.step-number{display:flex;flex-direction:column;align-items:center;gap:7px;font-size:11px;color:#bdc7c5}.led{width:8px;height:8px;background:#525b59;border-radius:50%}.step-number.current .led{background:#f8d58a}.step-number.current{color:#f8d58a}.track-label{font-size:13px;font-weight:650;display:flex;flex-direction:column;gap:1px}.track-label small{font-weight:400;font-size:11px;color:#b8c1bf}.kick-label{color:var(--kick)}.snare-label{color:var(--snare)}.slot{padding:0;width:100%;aspect-ratio:1;min-width:0;position:relative;border:0;background:var(--slot);border-radius:8px;box-shadow:inset 0 3px 6px #0005;color:#aeb8b5;display:grid;place-items:center}.slot::before,.slot::after{content:"";position:absolute;background:#85908b;border-radius:1px;transition:opacity .18s}.slot::before{width:14px;height:2px}.slot::after{width:2px;height:14px}.slot:hover{background:#353e3c}.token{position:absolute;inset:3px 3px 6px;background:var(--cream);border-radius:5px;box-shadow:0 5px 0 #b0a48e,0 7px 7px #0004;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(5px) scale(.92);transition:transform .18s var(--ease),opacity .12s;pointer-events:none}.slot[aria-pressed=true] .token{opacity:1;transform:translateY(0) scale(1)}.slot[aria-pressed=true]::before,.slot[aria-pressed=true]::after{opacity:0}.token-mark{width:44%;height:44%;border:7px solid #2b687a;border-radius:50%}.snare .token-mark{border:0;border-top:5px solid #9f522b;border-bottom:5px solid #9f522b;border-radius:0;height:30%;position:relative}.snare .token-mark::after{content:"";height:4px;position:absolute;top:calc(50% - 2px);left:0;right:0;background:#9f522b}.slot.hit .token{transform:translateY(3px) scale(.98);box-shadow:0 2px 0 #b0a48e,0 3px 5px #0003}.slot.current{outline:2px solid #e4c78a;outline-offset:3px}.divider{height:1px;background:#515958;margin:25px 0 22px}.transport{display:flex;align-items:center;gap:25px}.play{border:0;min-width:125px;border-radius:7px;background:#e9d4a5;color:#2b302d;font-weight:650;padding:13px 24px;display:flex;justify-content:center;align-items:center;gap:10px;box-shadow:0 3px 0 #958260}.play:hover{background:#f2dfb8}.play:active{transform:translateY(2px);box-shadow:0 1px 0 #958260}.play svg{width:16px;height:16px;fill:currentColor}.tempo-control{display:flex;align-items:center;gap:14px;flex:1;min-width:150px}.tempo-dial{width:45px;height:45px;background:#dcd9d0;border-radius:50%;box-shadow:0 3px 6px #0005;flex-shrink:0;position:relative;transform:rotate(var(--angle,-30deg))}.tempo-dial::before{content:"";position:absolute;width:3px;height:11px;top:5px;left:21px;border-radius:2px;background:#30393b}.tempo-fields{width:100%;max-width:240px}.field-label{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#d1d7d5;margin-bottom:5px}.field-label output{color:var(--cream);font-variant-numeric:tabular-nums}.field-label output b{font-size:16px;font-weight:550}input[type=range]{accent-color:#d4b878;width:100%;cursor:pointer;margin:3px 0;height:20px}.volume-control{width:110px;margin-left:auto}.volume-control .field-label{font-size:11px}.board-bottom{margin-top:17px;display:flex;justify-content:space-between;gap:8px;color:#bac3bf;font-size:11px}.board-bottom span:first-child{display:flex;gap:6px;align-items:center}.keyboard-hint{display:flex;align-items:center;gap:6px}.key{padding:1px 5px;border:1px solid #6c7470;border-radius:3px;font-size:11px}.actions{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:24px 0 26px}.button-group{display:flex;gap:9px;flex-wrap:wrap}.secondary{background:transparent;border:1px solid #a9ada6;border-radius:5px;font-size:13px;padding:8px 13px}.secondary:hover{background:#deded5}.link-button{border:0;border-bottom:1px solid #a0a79f;padding:3px 0;background:transparent;font-size:13px}.save-status{color:var(--muted);font-size:12px;min-height:18px}.how{display:grid;grid-template-columns:repeat(3,1fr);gap:25px;border-top:1px solid var(--line);padding-top:21px;margin-bottom:26px}.how h2{font-size:14px;font-weight:650;margin:0 0 4px}.how p{font-size:13px;color:var(--muted);max-width:31ch}.how-number{color:var(--accent);margin-right:7px}.partner{border-top:1px solid var(--line);padding-top:18px}.partner summary{cursor:pointer;font-weight:650;font-size:15px;display:flex;justify-content:space-between;align-items:center;list-style:none;gap:12px}.partner summary::-webkit-details-marker{display:none}.partner summary::after{content:"+";font-weight:400;font-size:24px;color:var(--accent)}.partner[open] summary::after{content:"−"}.partner-hint{font-weight:400;color:var(--muted);font-size:12px;margin-left:12px}.partner-panel{background:#dce5e4;margin-top:15px;padding:22px;border-radius:10px}.partner-intro{display:flex;justify-content:space-between;gap:16px;margin-bottom:16px}.partner-intro p{font-size:13px;color:#4d5f61;max-width:66ch}.sim-label{font-size:11px;color:#405758;border:1px solid #9cadaa;padding:3px 6px;border-radius:4px;white-space:nowrap;align-self:start}.partner-steps{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px;margin:15px 0 18px}.hat-slot{min-width:0;border:1px solid #92a6a5;background:#d2dddd;color:#435d5f;border-radius:5px;height:42px;font-size:13px;font-variant-numeric:tabular-nums}.hat-slot[aria-pressed=true]{background:#2d696e;color:#f5f3e9;border-color:#2d696e}.hat-slot.current{outline:2px solid #8f6a25;outline-offset:2px}.partner-bottom{display:flex;align-items:center;gap:14px;flex-wrap:wrap}.send{background:var(--accent);color:#fff;border:0;border-radius:5px;padding:9px 14px;font-size:13px}.send:hover{background:#144b5b}.partner-status{font-size:12px;color:#415758}.listen-status{margin-top:10px;min-height:18px;font-size:12px;color:#415758}.partner-muted{margin-left:auto}.partner-muted input{accent-color:var(--accent)}footer{margin-top:26px;padding-top:17px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;font-size:12px;color:var(--muted)}footer p{max-width:76ch}footer a{white-space:nowrap}.error{color:#963c27;font-size:14px;margin-top:15px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(min-width:1000px){.slot{max-height:88px}.sequence{column-gap:16px}.token-mark{border-width:8px}}
+@media(max-width:700px){main{padding:20px 18px 25px}.intro{gap:15px;padding:24px 0 20px;align-items:start;flex-direction:column}.intro p{font-size:14px}.preset{flex-direction:row;align-items:center;gap:10px}.preset select{font-size:13px;padding:5px 26px 5px 9px}.board{padding:20px 16px 20px;border-radius:13px}.sequence{grid-template-columns:42px repeat(8,minmax(0,1fr));gap:12px 7px}.board-label{font-size:11px}.board-top{margin-bottom:17px}.board-top output{font-size:11px}.power{display:none}.track-label{font-size:11px}.track-label small{font-size:11px}.slot{border-radius:5px;min-height:34px}.token{inset:2px 2px 5px;border-radius:3px}.token-mark{border-width:4px}.snare .token-mark{border-width:3px}.snare .token-mark::after{height:2px;top:calc(50% - 1px)}.transport{gap:17px;flex-wrap:wrap}.play{min-width:96px;padding:12px 14px;font-size:14px}.tempo-control{min-width:135px;gap:10px}.tempo-dial{width:36px;height:36px}.tempo-dial::before{left:17px;height:9px;top:4px}.volume-control{display:flex;gap:12px;align-items:center;width:100%;margin:0}.volume-control .field-label{margin:0;min-width:48px}.volume-control input{max-width:135px}.divider{margin:20px 0 17px}.board-bottom{font-size:11px}.keyboard-hint{display:none!important}.how{gap:15px}.how h2{font-size:13px}.how p{font-size:12px}.actions{flex-wrap:wrap;margin-bottom:22px}.partner-hint{display:none}.partner-panel{padding:17px}.partner-intro{flex-direction:column;gap:9px}.partner-steps{gap:6px}.partner-muted{margin-left:0}footer{flex-direction:column;gap:10px}}
+@media(max-width:380px){main{padding:16px 12px}.board{padding:18px 10px}.sequence{grid-template-columns:36px repeat(8,minmax(0,1fr));column-gap:5px}.track-label{font-size:11px}.track-label small{display:none}.slot{min-height:28px}.slot::before{width:9px}.slot::after{height:9px}.token-mark{border-width:3px}.how{grid-template-columns:1fr;gap:13px}.how p{max-width:none}.demo-label{font-size:11px}.brand{font-size:21px}.board-top output{font-size:11px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}.slot.hit .token{transform:none}}
+
+.session{border-top:1px solid var(--line);padding:17px 0 21px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}.session-copy{flex:1;min-width:220px}.session h2{font-size:15px;margin:0 0 3px}.session p{font-size:13px;color:var(--muted);margin:0}.session-status{font-size:12px;color:var(--accent);display:block;margin-top:5px}.session-actions{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.session-link{width:100%;display:flex;gap:9px;align-items:center}.session-link label{font-size:12px;white-space:nowrap}.session-link input{min-width:0;flex:1;border:1px solid #a9ada6;background:#f8f6f0;border-radius:5px;padding:8px;font:12px system-ui;color:var(--muted)}[hidden]{display:none!important}button:disabled{opacity:.55;cursor:wait}.session .send{font-size:13px}
+</style>
+</head>
+<body>
+<main>
+<header><div class="brand"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>BeatBlocks</div><span class="demo-label">Interactive product demo</span></header>
+<section class="intro" aria-labelledby="intro-title"><div><h1>Build a beat. With blocks.</h1><p>Click a slot to place a block. Press Play. Move blocks to change the rhythm.</p></div><div class="preset"><label for="preset">Start with a rhythm</label><select id="preset"><option value="starter">Simple beat</option><option value="bounce">Bouncy beat</option><option value="busy">Busy beat</option><option value="empty">Empty board</option><option value="custom" disabled>Your beat</option></select></div></section>
+<section class="session" aria-label="Shared music">
+<div class="session-copy"><h2>Build a beat together</h2><p id="session-help">Share a link. Edit the same beat on both devices.</p><span id="session-status" class="session-status" role="status" aria-live="polite">Playing solo</span></div>
+<div class="session-actions"><button type="button" class="send" id="create-session">Create session</button><button type="button" class="send" id="copy-session" hidden>Copy invite link</button><button type="button" class="link-button" id="leave-session" hidden>Leave session</button></div>
+<div class="session-link" id="session-link-row" hidden><label for="session-link">Invite link</label><input id="session-link" readonly aria-label="Session invite link"></div>
+</section>
+<section class="board" aria-label="BeatBlocks physical board simulation">
+<div class="board-top"><span class="board-label">TWO SOUNDS · EIGHT POSITIONS</span><output id="play-state">Ready to play</output><span class="power"><span class="power-dot"></span>DEMO</span></div>
+<div class="sequence" id="sequence" role="group" aria-label="Place or remove blocks. First row kick, second row snare."></div>
+<div class="divider"></div>
+<div class="transport"><button class="play" id="play" type="button" aria-label="Play rhythm"><svg viewBox="0 0 16 16" aria-hidden="true"><path id="play-icon" d="M4 2 14 8 4 14Z"/></svg><span id="play-label">Play</span></button><div class="tempo-control"><span class="tempo-dial" id="dial" aria-hidden="true"></span><div class="tempo-fields"><label class="field-label" for="tempo"><span>Tempo</span><output for="tempo"><b id="tempo-value">96</b> BPM</output></label><input type="range" min="50" max="170" value="96" id="tempo" aria-label="Tempo in beats per minute"></div></div><div class="volume-control"><label class="field-label" for="volume">Volume</label><input type="range" min="0" max="100" value="55" id="volume" aria-label="Volume"></div></div>
+<div class="board-bottom"><span>Kick = low thump &nbsp;·&nbsp; Snare = sharp clap</span><span class="keyboard-hint"><span class="key">Space</span> play / stop</span></div>
+</section>
+<div class="actions"><div class="button-group"><button type="button" class="secondary" id="save">Save my beat</button><button type="button" class="secondary" id="restore" disabled>Load saved beat</button><button type="button" class="link-button" id="clear">Remove all blocks</button></div><span class="save-status" id="save-status" role="status" aria-live="polite">Saved beats stay in this browser.</span></div>
+<div class="error" id="error" role="alert" hidden></div>
+<section class="how" aria-label="How the physical product works"><div><h2><span class="how-number">1</span>Place</h2><p>Each block tells the board when to make a sound.</p></div><div><h2><span class="how-number">2</span>Listen</h2><p>The light moves left to right. An empty slot stays silent.</p></div><div><h2><span class="how-number">3</span>Change</h2><p>Move blocks while it loops. Turn the tempo up or down.</p></div></section>
+<details class="partner" id="partner"><summary><span>Add a hi-hat track</span></summary><div class="partner-panel"><div class="partner-intro"><p>Add a crisp hi-hat rhythm. Changes join at a loop boundary.</p><span class="sim-label" id="track-mode">Solo track</span></div><div class="partner-steps" id="partner-steps" role="group" aria-label="Partner's hi-hat pattern"></div><div class="partner-bottom"><button type="button" class="send" id="send">Send to board</button><span class="partner-status" id="partner-status" role="status" aria-live="polite">Edit a pattern, then send it.</span><label class="partner-muted"><input type="checkbox" id="mute-partner"> <span style="font-size:12px">Mute hi-hat on this device</span></label></div><p class="listen-status" id="listen-status">On the board: no partner track yet.</p></div></details>
+<footer><p>Magnetic blocks set the beat. LEDs mark each step. A speaker plays the rhythm.</p><a href="./index.html" download="beatblocks-demo.html">Download offline demo</a></footer>
+<span id="announcement" class="sr-only" role="status" aria-live="polite"></span>
+</main>
+<script>
+(() => {
+'use strict';
+// shared-client:start
+// Server milliseconds define musical time. A step is an eighth note; a bar is eight steps.
+function initialPlayback(state,at,revision){return {frames:[{at,step:0,revision,bpm:state.bpm,pattern:state.pattern.map(r=>r.slice()),partner:state.partner.slice()}]};}
+function positionAt(playback,time){
+ const frames=playback.frames;let index=0;
+ while(index+1<frames.length&&frames[index+1].at<=time+.001)index++;
+ const frame=frames[index],duration=30000/frame.bpm;
+ const step=frame.step+Math.max(0,Math.floor((time-frame.at+.001)/duration));
+ return {frame,index,step,at:frame.at+(step-frame.step)*duration};
+}
+function nextTick(playback,time,afterStep=-1){
+ const pos=positionAt(playback,time),frames=playback.frames;
+ let i=pos.index;
+ while(true){
+  const frame=frames[i],duration=30000/frame.bpm;
+  const step=Math.max(frame.step,afterStep+1,frame.step+Math.ceil((time-frame.at-.001)/duration));
+  const at=frame.at+(step-frame.step)*duration;
+  if(i+1<frames.length&&at>=frames[i+1].at-.001){i++;continue;}
+  return {frame,step,at};
+ }
+}
+function schedulePlayback(playback,state,now,revision){
+ const earliest=now+1800;
+ let tick=nextTick(playback,earliest);
+ while(tick.step%8!==0)tick=nextTick(playback,tick.at+.01,tick.step);
+ const frame={at:tick.at,step:tick.step,revision,bpm:state.bpm,pattern:state.pattern.map(r=>r.slice()),partner:state.partner.slice()};
+ const retained=playback.frames.filter(f=>f.at<tick.at-.001);
+ while(retained.length>1&&retained[1].at<now-10000)retained.shift();
+ return {frames:[...retained,frame]};
+}
+class ServerClock {
+ constructor(now=()=>performance.now()){this.monotonic=now;this.samples=[];this.offset=null;this.errorMs=Infinity;this.lastSample=-Infinity;}
+ observe(data,sent,received){
+  const {serverReceived,serverTime}=data;
+  if(!Number.isFinite(serverReceived)||!Number.isFinite(serverTime)||serverTime<serverReceived||received<sent)return;
+  const rtt=received-sent-(serverTime-serverReceived);
+  if(rtt< -5||rtt>2000)return;
+  this.samples=this.samples.filter(s=>received-s.received<60000);
+  this.samples.push({received,rtt:Math.max(0,rtt),offset:serverTime+Math.max(0,rtt)/2-received});
+  if(this.samples.length>80)this.samples.shift();
+  // Minimum round-trip delay minimizes queueing bias; refresh the sample set every minute.
+  const best=this.samples.reduce((a,b)=>b.rtt<=a.rtt?b:a);
+  this.offset=best.offset;this.errorMs=best.rtt/2;this.lastSample=received;
+ }
+ get ready(){return this.offset!==null;}
+ now(){return this.ready?this.monotonic()+this.offset:NaN;}
+ toServer(performanceTime){return performanceTime+this.offset;}
+ toPerformance(serverTime){return serverTime-this.offset;}
+}
+function outputMapping(context,perfNow){
+ const ts=context.getOutputTimestamp?.();
+ if(ts&&ts.contextTime>0&&ts.performanceTime>0&&Math.abs(perfNow-ts.performanceTime)<1000)return {audioBase:ts.contextTime,perfBase:ts.performanceTime};
+ return {audioBase:context.currentTime,perfBase:perfNow+1000*((context.baseLatency||0)+(context.outputLatency||0))};
+}
+
+class SharedSessionClient {
+ constructor(options){
+  this.baseUrl=options.baseUrl||'';this.roomId=options.roomId;
+  this.clientId=options.clientId||crypto.randomUUID().replaceAll('-','');
+  this.fetch=options.fetch||fetch.bind(globalThis);this.onState=options.onState;this.onStatus=options.onStatus;
+  this.monotonic=options.monotonic||(()=>performance.now());this.clock=new ServerClock(this.monotonic);this.playback=null;this.lastContact=-Infinity;
+  this.revision=-1;this.canonical=null;this.queue=[];this.seq=0;this.connected=0;
+  this.closed=false;this.sending=false;this.polling=false;this.heartbeat=0;this.timer=null;this.online=false;
+ }
+ snapshot(){
+  if(!this.canonical)return null;
+  const s=JSON.parse(JSON.stringify(this.canonical));
+  for(const op of this.queue)for(const c of op.changes){if('bpm' in c)s.bpm=c.bpm;else (c.row===2?s.partner:s.pattern[c.row])[c.step]=c.value;}
+  return s;
+ }
+ emit(){if(!this.closed&&this.canonical)this.onState(this.snapshot());}
+ status(text){if(!this.closed)this.onStatus(text);}
+ connectedStatus(){this.status('Connected · '+Math.max(1,this.connected)+' here'+(this.queue.length?' · saving…':' · saved'));}
+ accept(data){
+  if(this.closed)return;
+  this.connected=data.connected;
+  if(data.revision>=this.revision){this.revision=data.revision;this.canonical=data.state;this.playback=data.playback||null;}
+  this.lastContact=this.monotonic();
+  this.online=true;this.emit();this.connectedStatus();
+ }
+ async request(body,clockOnly=false){
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),8000);
+  try{
+   const sent=this.monotonic();
+   const res=await this.fetch(this.baseUrl+'/api/sessions'+(clockOnly?'?clock=1':'/'+this.roomId),{method:body?'POST':'GET',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,signal:controller.signal,cache:'no-store',credentials:'omit',referrerPolicy:'no-referrer'});
+   const data=await res.json();const received=this.monotonic();if(!res.ok)throw Object.assign(new Error(data.error||'Could not connect.'),{status:res.status});this.clock.observe(data,sent,received);return data;
+  }finally{clearTimeout(timeout);}
+ }
+ failed(error){
+  this.online=false;
+  if([400,403,404,409,413].includes(error.status)){this.status(error.message);this.fatal=true;return;}
+  this.status('Reconnecting'+(this.queue.length?' · '+this.queue.length+(this.queue.length===1?' change waiting':' changes waiting'):'')+'…');
+ }
+ edit(changes){
+  if(!this.canonical||this.closed||this.fatal)return false;
+  if(this.queue.length>=256){this.status('Reconnect to send your waiting changes.');return false;}
+  this.queue.push({type:'edit',clientId:this.clientId,seq:++this.seq,changes:JSON.parse(JSON.stringify(changes))});
+  this.emit();this.online?this.connectedStatus():this.status('Reconnecting · '+this.queue.length+(this.queue.length===1?' change waiting…':' changes waiting…'));this.flush();return true;
+ }
+ async flush(){
+  if(this.sending||this.closed||this.fatal)return;
+  this.sending=true;
+  try{while(this.queue.length&&!this.closed){const op=this.queue[0],data=await this.request(op);if(this.closed)break;this.queue.shift();this.accept(data);}}
+  catch(error){this.failed(error);}finally{this.sending=false;}
+ }
+ async poll(){
+  if(this.closed||this.polling||this.fatal)return;
+  this.polling=true;
+  try{const heartbeat=Date.now()-this.heartbeat>10000;const data=await this.request(heartbeat?{type:'presence',clientId:this.clientId}:null);if(heartbeat)this.heartbeat=Date.now();this.accept(data);await this.flush();}
+  catch(error){this.failed(error);}finally{
+   this.polling=false;
+   if(!this.closed&&!this.fatal)this.timer=setTimeout(()=>this.poll(),this.online?600:2000);
+  }
+ }
+ async syncClock(count=5){for(let i=0;i<count&&!this.closed;i++)await this.request(null,true);}
+ start(){this.status('Joining session…');return Promise.all([this.poll(),this.syncClock().catch(()=>{})]);}
+ close(){this.closed=true;clearTimeout(this.timer);}
+}
+// shared-client:end
+
+const $ = id => document.getElementById(id);
+let session=null,audiblePattern=null,activeBpm=96,sharedLastStep=-1,sharedOffset=null,syncWaiting=false,heardRevision=-1,startGeneration=0;
+const N=8, STORE='beatblocks-demo-v1';
+const presets={starter:[[1,0,0,0,1,0,0,0],[0,0,1,0,0,0,1,0]],bounce:[[1,0,0,1,1,0,0,0],[0,0,1,0,0,0,1,1]],busy:[[1,0,1,0,1,1,0,0],[0,0,0,1,0,0,1,0]],empty:[Array(N).fill(0),Array(N).fill(0)]};
+const clone=p=>p.map(row=>row.slice());
+let pattern=clone(presets.starter),draft=[1,1,1,1,1,1,1,1],partner=Array(N).fill(0),pending=null,bpm=96;
+let playing=false,starting=false,audio=null,master=null,noise=null,ticker=null,raf=null,nextTime=0,nextStep=0,queue=[],current=-1,loop=0;
+let activeSources=new Set();
+const stepHeads=[],localButtons=[[],[]],hatButtons=[];
+function add(tag,cls,text,parent){const e=document.createElement(tag);e.className=cls;if(text!==undefined)e.textContent=text;parent.appendChild(e);return e;}
+add('span','step-title','STEP',$('sequence'));
+for(let i=0;i<N;i++){const h=add('div','step-number',undefined,$('sequence'));add('span','led','',h);add('span','',String(i+1),h);stepHeads.push(h);}
+['Kick','Snare'].forEach((name,row)=>{
+ const label=add('div','track-label '+(row?'snare-label':'kick-label'),name,$('sequence'));add('small','',row?'Clap':'Thump',label);
+ for(let i=0;i<N;i++){
+  const b=add('button','slot '+(row?'snare':'kick'),undefined,$('sequence'));b.type='button';b.dataset.row=row;b.dataset.step=i;
+  const token=add('span','token',undefined,b);token.setAttribute('aria-hidden','true');add('span','token-mark','',token);
+  b.addEventListener('click',()=>{if(session){session.edit([{row,step:i,value:pattern[row][i]?0:1}]);}else{pattern[row][i]=pattern[row][i]?0:1;drawBoard();}$('announcement').textContent=(pattern[row][i]?'Placed ':'Removed ')+name+' block at position '+(i+1)+'.';});
+  localButtons[row].push(b);
+ }
+});
+for(let i=0;i<N;i++){
+ const b=add('button','hat-slot',String(i+1),$('partner-steps'));b.type='button';b.addEventListener('click',()=>{if(session){session.edit([{row:2,step:i,value:draft[i]?0:1}]);}else{draft[i]=draft[i]?0:1;drawPartner();$('partner-status').textContent='Edited. Send to update the board.';}});hatButtons.push(b);
+}
+function drawBoard(){const match=Object.entries(presets).find(([,p])=>JSON.stringify(p)===JSON.stringify(pattern));$('preset').value=match?match[0]:'custom';localButtons.forEach((row,r)=>row.forEach((b,i)=>{b.setAttribute('aria-pressed',String(!!pattern[r][i]));b.setAttribute('aria-label',(pattern[r][i]?'Remove ':'Place ')+(r?'snare':'kick')+' block at position '+(i+1));}));}
+function drawPartner(){hatButtons.forEach((b,i)=>{b.setAttribute('aria-pressed',String(!!draft[i]));b.setAttribute('aria-label',(draft[i]?'Remove':'Add')+' hi-hat at position '+(i+1));});}
+function updateTempo(){bpm=Number($('tempo').value);$('tempo-value').textContent=bpm;$('dial').style.setProperty('--angle',(-130+(bpm-50)/120*260)+'deg');}
+function showError(text){$('error').textContent=text;$('error').hidden=false;}
+async function initAudio(){
+ const Audio=window.AudioContext||window.webkitAudioContext;
+ if(!Audio)throw new Error('This browser does not support audio. Try Chrome, Safari, or Firefox.');
+ if(!audio){audio=new Audio({latencyHint:"interactive"});master=audio.createGain();master.gain.value=Number($('volume').value)/100*.65;master.connect(audio.destination);noise=audio.createBuffer(1,audio.sampleRate*.3,audio.sampleRate);const d=noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}
+ await audio.resume();if(audio.state!=='running')throw new Error('Audio is paused by your browser. Press Play again to enable sound.');
+}
+function source(node,time,duration){activeSources.add(node);node.onended=()=>{activeSources.delete(node);node.disconnect();};node.start(time);node.stop(time+duration);}
+function envelope(time,peak,duration){const g=audio.createGain();g.gain.setValueAtTime(.0001,time);g.gain.exponentialRampToValueAtTime(peak,time+.003);g.gain.exponentialRampToValueAtTime(.0001,time+duration);g.connect(master);return g;}
+function kick(t){const o=audio.createOscillator();o.frequency.setValueAtTime(150,t);o.frequency.exponentialRampToValueAtTime(45,t+.16);const g=envelope(t,.8,.23);o.connect(g);source(o,t,.25);o.addEventListener('ended',()=>g.disconnect());}
+function snare(t){const n=audio.createBufferSource();n.buffer=noise;const f=audio.createBiquadFilter();f.type='highpass';f.frequency.value=1000;const g=envelope(t,.42,.15);n.connect(f);f.connect(g);source(n,t,.17);n.addEventListener('ended',()=>{f.disconnect();g.disconnect();});const o=audio.createOscillator();o.type='triangle';o.frequency.value=180;const body=envelope(t,.15,.075);o.connect(body);source(o,t,.09);o.addEventListener('ended',()=>body.disconnect());}
+function hat(t){const n=audio.createBufferSource();n.buffer=noise;const f=audio.createBiquadFilter();f.type='highpass';f.frequency.value=7500;const g=envelope(t,.16,.045);n.connect(f);f.connect(g);source(n,t,.06);n.addEventListener('ended',()=>{f.disconnect();g.disconnect();});}
+function clearPlayhead(){stepHeads.forEach(h=>h.classList.remove('current'));localButtons.flat().forEach(b=>b.classList.remove('current','hit'));hatButtons.forEach(b=>b.classList.remove('current'));current=-1;}
+function scheduler(){
+ if(!playing||audio.state!=='running')return;
+ if(session){scheduleShared();return;}
+ while(nextTime<audio.currentTime+.085){
+  let applied=false;
+  if(nextStep===0){loop++;if(session){audiblePattern=clone(pattern);activeBpm=bpm;}if(pending){partner=pending.slice();pending=null;applied=true;}}
+  const heard=session?(audiblePattern||pattern):pattern;
+  const hits=[!!heard[0][nextStep],!!heard[1][nextStep]];
+  if(hits[0])kick(nextTime);if(hits[1])snare(nextTime);if(partner[nextStep]&&!$('mute-partner').checked)hat(nextTime);
+  queue.push({time:nextTime,step:nextStep,hits,loop,applied,partnerSnapshot:applied?partner.slice():null});
+  nextTime+=60/(session?activeBpm:bpm)/2;nextStep=(nextStep+1)%N;
+ }
+}
+function animate(){
+ if(!playing)return;
+ if(session){animateShared();raf=requestAnimationFrame(animate);return;}
+ let event=null;while(queue.length&&queue[0].time<=audio.currentTime)event=queue.shift();
+ if(event){clearPlayhead();current=event.step;stepHeads[current].classList.add('current');localButtons.forEach((r,index)=>{r[current].classList.add('current');if(event.hits[index])r[current].classList.add('hit');});hatButtons[current].classList.add('current');$('play-state').textContent='Loop '+event.loop+' · position '+(current+1)+' / 8';
+ if(event.applied){$('partner-status').textContent='Applied at a loop boundary.';$('listen-status').textContent=event.partnerSnapshot.some(Boolean)?'On the board: '+event.partnerSnapshot.map((v,i)=>v?i+1:null).filter(Boolean).join(', ')+' (hi-hat positions).':'On the board: no hi-hats.';}}
+ raf=requestAnimationFrame(animate);
+}
+function cancelScheduled(){activeSources.forEach(s=>{try{s.stop();}catch(_){}});activeSources.clear();queue=[];sharedLastStep=-1;clearPlayhead();}
+function scheduleShared(){
+ const c=session;
+ if(!c.clock.ready||!c.playback||c.monotonic()-c.lastContact>4000){
+  if(!syncWaiting)cancelScheduled();syncWaiting=true;$('play-state').textContent='Reconnecting to the beat…';return;
+ }
+ if(syncWaiting||(sharedOffset!==null&&Math.abs(c.clock.offset-sharedOffset)>35))cancelScheduled();
+ syncWaiting=false;sharedOffset=c.clock.offset;
+ const perf=c.monotonic(),map=outputMapping(audio,perf);
+ const outputNow=map.perfBase+(audio.currentTime-map.audioBase)*1000;
+ const earliest=c.clock.toServer(outputNow+45),horizon=c.clock.toServer(outputNow+220);
+ let tick=nextTick(c.playback,earliest,sharedLastStep);
+ while(tick.at<=horizon){
+  const audioTime=map.audioBase+(c.clock.toPerformance(tick.at)-map.perfBase)/1000;
+  const step=tick.step%N,frame=tick.frame,hits=[!!frame.pattern[0][step],!!frame.pattern[1][step]];
+  if(hits[0])kick(audioTime);if(hits[1])snare(audioTime);if(frame.partner[step]&&!$('mute-partner').checked)hat(audioTime);
+  queue.push({time:audioTime,serverAt:tick.at,absoluteStep:tick.step,step,hits,frameRevision:frame.revision});
+  $('play-state').dataset.nextSoundAt=String(tick.at);$('play-state').dataset.nextSoundStep=String(tick.step);
+  sharedLastStep=tick.step;tick=nextTick(c.playback,tick.at+.01,sharedLastStep);
+ }
+}
+function animateShared(){
+ queue=queue.filter(e=>e.time>audio.currentTime);
+ if(syncWaiting||!session.clock.ready||!session.playback)return;
+ const now=session.clock.now(),pos=positionAt(session.playback,now),step=pos.step%N;
+ const display=$('play-state');display.dataset.serverTime=String(now);display.dataset.absoluteStep=String(pos.step);display.dataset.clockErrorMs=String(session.clock.errorMs);
+ if(current!==step||heardRevision!==pos.frame.revision){
+  clearPlayhead();current=step;stepHeads[step].classList.add('current');
+  localButtons.forEach((r,index)=>{r[step].classList.add('current');if(pos.frame.pattern[index][step])r[step].classList.add('hit');});hatButtons[step].classList.add('current');
+  display.textContent='In sync · position '+(step+1)+' / 8';
+  if(heardRevision!==pos.frame.revision){
+   heardRevision=pos.frame.revision;partner=pos.frame.partner.slice();
+   $('listen-status').textContent=partner.some(Boolean)?'Playing: '+partner.map((v,i)=>v?i+1:null).filter(Boolean).join(', ')+' (hi-hat positions).':'Playing: no hi-hats.';
+  }
+ }
+ $('partner-status').textContent=session.queue.length||session.playback.frames.at(-1).at>now?'Changes join at a shared loop boundary.':'Playing the shared beat.';
+}
+async function start(){
+ if(playing||starting)return;starting=true;const generation=++startGeneration,joined=session;$('play-label').textContent=session?'Syncing…':'Starting';$('play').disabled=true;
+ try{
+  await initAudio();
+  if(joined){
+   await joined.syncClock(3);
+   if(!joined.playback){await joined.poll();}
+   if(!joined.clock.ready||!joined.playback)throw new Error('Connect to the session, then press Play.');
+  }
+  if(generation!==startGeneration||joined!==session)return;
+  $('error').hidden=true;playing=true;loop=0;nextStep=0;nextTime=audio.currentTime+.05;queue=[];sharedLastStep=-1;sharedOffset=null;syncWaiting=false;heardRevision=-1;
+  $('play-label').textContent='Stop';$('play').setAttribute('aria-label','Stop rhythm');$('play-icon').setAttribute('d','M3 3H13V13H3Z');$('announcement').textContent=joined?'Listening to the shared beat.':'Playing. Move blocks to change the beat.';
+  scheduler();ticker=setInterval(scheduler,25);animate();
+ }catch(err){if(generation===startGeneration){showError(err.message);$('play-label').textContent='Play';}}
+ finally{starting=false;$('play').disabled=false;}
+}
+function stop(reason){startGeneration++;playing=false;clearInterval(ticker);cancelAnimationFrame(raf);cancelScheduled();$('play-label').textContent='Play';$('play').setAttribute('aria-label','Play rhythm');$('play-icon').setAttribute('d','M4 2 14 8 4 14Z');$('play-state').textContent=reason||(session?'Shared beat ready':'Ready to play');$('announcement').textContent='Stopped.';
+ if(session){$('partner-status').textContent='Shared hi-hat ready. Press Play to listen.';$('listen-status').textContent=draft.some(Boolean)?'Ready: '+draft.map((v,i)=>v?i+1:null).filter(Boolean).join(', ')+' (hi-hat positions).':'Ready: no hi-hats.';}
+}
+$('play').addEventListener('click',()=>playing?stop():start());
+$('tempo').addEventListener('input',()=>{updateTempo();if(session){const chosen=bpm;clearTimeout(tempoSendTimer);tempoSendTimer=setTimeout(()=>{tempoSendTimer=null;if(session)session.edit([{bpm:chosen}]);},120);}});
+$('volume').addEventListener('input',()=>{if(master)master.gain.setTargetAtTime(Number($('volume').value)/100*.65,audio.currentTime,.02);});
+$('preset').addEventListener('change',()=>{const chosen=presets[$('preset').value];if(session){shareBoard(chosen);}else{pattern=clone(chosen);drawBoard();}$('save-status').textContent=session?'Session saves automatically.':'Rhythm changed. Save it to keep your edits.';});
+$('clear').addEventListener('click',()=>{if(session){shareBoard(presets.empty);}else{pattern=clone(presets.empty);drawBoard();$('preset').value='empty';}$('announcement').textContent='All blocks removed. Place new blocks to build a beat.';});
+$('send').addEventListener('click',()=>{pending=draft.slice();$('partner-status').textContent=playing?'Sent. Queued for a loop boundary.':'Sent. Joins when you press Play.';});
+function valid(saved){return saved&&Array.isArray(saved.pattern)&&saved.pattern.length===2&&saved.pattern.every(row=>Array.isArray(row)&&row.length===N&&row.every(v=>v===0||v===1))&&Number.isFinite(saved.bpm)&&saved.bpm>=50&&saved.bpm<=170&&Array.isArray(saved.partner)&&saved.partner.length===N&&saved.partner.every(v=>v===0||v===1);}
+function readSaved(){try{const s=JSON.parse(localStorage.getItem(STORE));return valid(s)?s:null;}catch(_){return null;}}
+$('save').addEventListener('click',()=>{try{localStorage.setItem(STORE,JSON.stringify({pattern,bpm,partner:session?draft:(pending||partner)}));$('restore').disabled=false;$('save-status').textContent='Beat saved in this browser.';}catch(_){$('save-status').textContent='Saving is blocked in this browser. Your beat still plays.';}});
+$('restore').addEventListener('click',()=>{const s=readSaved();if(!s){$('save-status').textContent='No saved beat found.';return;}if(session){const changes=boardChanges(s.pattern);changes.push({bpm:s.bpm});s.partner.forEach((value,step)=>changes.push({row:2,step,value}));session.edit(changes);$('save-status').textContent='Saved beat shared with the session.';return;}pattern=clone(s.pattern);$('tempo').value=s.bpm;updateTempo();draft=s.partner.slice();pending=s.partner.slice();drawBoard();drawPartner();$('save-status').textContent='Saved beat loaded.';$('announcement').textContent='Saved beat restored.';$('partner-status').textContent=playing?'Saved partner track queued for a loop boundary.':'Saved partner track joins on Play.';});
+document.addEventListener('keydown',e=>{if(e.code==='Space'&&!['INPUT','SELECT','TEXTAREA','BUTTON','SUMMARY','A'].includes(e.target.tagName)){e.preventDefault();playing?stop():start();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&playing)stop('Paused while away');});
+window.addEventListener('pagehide',()=>{if(playing)stop();});
+
+let tempoSendTimer=null;
+const API_BASE=typeof location!=='undefined'&&location.hostname==='hitianji.github.io'?'https://beatblocks-playground.homerclare.chatgpt.site':(typeof location!=='undefined'&&location.protocol==='file:'?'https://beatblocks-playground.homerclare.chatgpt.site':'');
+function boardChanges(p){const changes=[];p.forEach((row,r)=>row.forEach((value,step)=>{if(pattern[r][step]!==value)changes.push({row:r,step,value});}));return changes;}
+function shareBoard(p){const changes=boardChanges(p);if(changes.length)session.edit(changes);}
+function lockEditing(locked){localButtons.flat().concat(hatButtons,[$('tempo'),$('preset'),$('clear'),$('restore'),$('send')]).forEach(b=>b.disabled=locked);if(!locked)$('restore').disabled=!readSaved();}
+function receiveShared(s){
+ pattern=clone(s.pattern);if(tempoSendTimer===null){$('tempo').value=s.bpm;updateTempo();}
+ if(JSON.stringify(draft)!==JSON.stringify(s.partner)||JSON.stringify(pending||partner)!==JSON.stringify(s.partner)){
+  draft=s.partner.slice();pending=s.partner.slice();drawPartner();
+  $('partner-status').textContent=playing?'Changes join at a shared loop boundary.':'Shared hi-hat ready. Press Play to listen.';
+  if(!playing)$('listen-status').textContent=s.partner.some(Boolean)?'Ready: '+s.partner.map((v,i)=>v?i+1:null).filter(Boolean).join(', ')+' (hi-hat positions).':'Ready: no hi-hats.';
+ }
+ drawBoard();lockEditing(false);
+}
+function joinSession(id,initial){
+ if(session)session.close();clearTimeout(tempoSendTimer);tempoSendTimer=null;
+ stop();lockEditing(true);$('create-session').hidden=true;$('copy-session').hidden=false;$('leave-session').hidden=false;$('session-link-row').hidden=false;
+ $('session-link').value=(location.protocol==='file:'?'https://hitianji.github.io/beatblocks-demo/':location.origin+location.pathname)+'#room='+id;
+ $('session-help').textContent='Press Play to join the shared beat. Stop and volume affect your device.';
+ $('save').textContent='Save local copy';$('restore').textContent='Load local copy';$('save-status').textContent='Session saves automatically. Local copies stay in this browser.';
+ $('track-mode').textContent='Shared track';$('send').hidden=true;$('partner').open=true;
+ session=new SharedSessionClient({baseUrl:API_BASE,roomId:id,onState:receiveShared,onStatus:text=>{$('session-status').textContent=text;}});
+ if(initial)session.accept(initial);session.start();
+}
+function leaveSession(){
+ stop();
+ if(session)session.close();session=null;clearTimeout(tempoSendTimer);tempoSendTimer=null;lockEditing(false);
+ history.replaceState(null,'',location.pathname+location.search);$('create-session').hidden=false;$('copy-session').hidden=true;$('leave-session').hidden=true;$('session-link-row').hidden=true;
+ $('save').textContent='Save my beat';$('restore').textContent='Load saved beat';$('save-status').textContent='Saved beats stay in this browser.';
+ $('session-help').textContent='Share a link. Edit the same beat on both devices.';$('session-status').textContent='Playing solo';$('track-mode').textContent='Solo track';$('send').hidden=false;
+}
+function setupSharing(){
+ $('create-session').addEventListener('click',async()=>{
+  $('create-session').disabled=true;lockEditing(true);$('session-status').textContent='Creating session…';
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10000);
+  try{
+   const res=await fetch(API_BASE+'/api/sessions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pattern,bpm,partner:pending||partner}),signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer'});
+   const data=await res.json();if(!res.ok)throw new Error(data.error||'Could not create a session.');
+   history.replaceState(null,'','#room='+data.id);joinSession(data.id,data);
+  }catch(error){$('session-status').textContent='Could not create a session. Try again.';lockEditing(false);}
+  finally{clearTimeout(timeout);$('create-session').disabled=false;}
+ });
+ $('copy-session').addEventListener('click',async()=>{
+  try{await navigator.clipboard.writeText($('session-link').value);$('copy-session').textContent='Link copied';setTimeout(()=>{$('copy-session').textContent='Copy invite link';},1800);}
+  catch{$('session-link').focus();$('session-link').select();$('session-status').textContent='Copy the selected invite link.';}
+ });
+ $('session-link').addEventListener('click',()=>$('session-link').select());
+ $('leave-session').addEventListener('click',leaveSession);
+ window.addEventListener('beforeunload',e=>{if(session?.queue.length){e.preventDefault();e.returnValue='';}});
+ const fromLink=()=>{const id=new URLSearchParams(location.hash.slice(1)).get('room');if(id&&/^[a-f0-9]{64}$/.test(id))joinSession(id);else if(id){$('session-status').textContent='Invalid invite link. Ask for a new one.';}else if(session)leaveSession();};
+ window.addEventListener('hashchange',fromLink);fromLink();
+}
+
+if(readSaved())$('restore').disabled=false;
+drawBoard();drawPartner();updateTempo();
+if(typeof location!=='undefined')setupSharing();
+})();
+</script>
+</body>
+</html>
