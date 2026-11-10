@@ -7,32 +7,48 @@ Target: feed the same `kick[]` / `snare[]` arrays used by `sound/reed_bridge`.
 
 - 16× NO reed switches (2 rows × 8 steps)
 - Magnets inside PLA tokens
-- MCP23017 I²C GPIO expander (14 inputs) + 2× ESP32 GPIO for the remaining switches
-- 10 kΩ pull-ups on each reed input
+- Direct GPIOs for the 16-switch smoke test (MCP23017 still an option later)
+- `INPUT_PULLUP` for bench tests; prefer 10 kΩ pull-ups on the final board
 
-## Single-reed smoke test (first)
+## Do not reuse
 
-| Signal | ESP32-S3 |
-|--------|----------|
-| Reed side A | **GPIO 15** |
-| Reed side B | **GND** |
+| Function | GPIOs |
+|----------|--------|
+| I²S | **2** (BCLK), **42** (LRC), **1** (DIN) |
+| Tempo pot | **14** |
+| Playhead LEDs | **21, 47, 48, 45, 38, 39, 40, 41** |
 
-Sketch uses `INPUT_PULLUP` (no external resistor required for the first test).  
-Optional: 10 kΩ pull-up from GPIO 15 to 3.3 V instead.
+## Full 16-reed map
+
+Each reed: GPIO ↔ NO switch ↔ GND.
+
+| Step | Kick GPIO | Snare GPIO |
+|------|-----------|------------|
+| 0 | 4 | 12 |
+| 1 | 5 | 13 |
+| 2 | 6 | 3 |
+| 3 | 7 | 15 |
+| 4 | 8 | 16 |
+| 5 | 9 | 17 |
+| 6 | 10 | 18 |
+| 7 | 11 | 46 |
 
 ```bash
-./reed/flash.sh single_reed
+./reed/flash.sh full16
 ```
 
-Expect Serial: `CLOSED (magnet present)` / `OPEN (no magnet)`.
+Serial prints `K[...]` / `S[...]` whenever occupancy changes.
 
-## Planned I²C
+## Tempo pot (shared with sound)
 
-| Signal | ESP32-S3 | Notes |
-|--------|----------|--------|
-| SDA | TBD | Keep clear of I²S 8/9/10, pot 4, playhead LEDs, reed 15 |
-| SCL | TBD | |
-| MCP23017 ADDR | TBD | |
+Wiper → **GPIO 14** (3.3 V / GND on the outer pins).
+
+## Smaller smoke tests
+
+```bash
+./reed/flash.sh single_reed   # GPIO 15 only
+./reed/flash.sh triple_reed   # GPIO 4,5,6
+```
 
 ## Rows
 
@@ -44,8 +60,6 @@ Expect Serial: `CLOSED (magnet present)` / `OPEN (no magnet)`.
 ## Build order
 
 1. One reed + magnet smoke test
-2. MCP23017 bring-up
-3. 2×2 fixture + debounce / neighbor check
-4. Expand to 16, then merge occupancy into `reed_bridge`
-
-See project timeline: Tianji owns reed grid; Ken owns audio + playhead.
+2. Triple reed + spacing check
+3. Full 16 occupancy map
+4. Merge occupancy into `reed_bridge` (audio + playhead)

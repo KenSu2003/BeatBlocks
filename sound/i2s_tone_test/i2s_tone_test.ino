@@ -4,18 +4,18 @@
   Amp:   MAX98357A
 
   Wiring:
-    BCLK → GPIO 9
-    LRC  → GPIO 8
-    DIN  → GPIO 10
+    BCLK → GPIO 2
+    LRC  → GPIO 42
+    DIN  → GPIO 1
     VIN / GND powered to the amp
 */
 
 #include <Arduino.h>
 #include <ESP_I2S.h>
 
-#define I2S_BCLK 9
-#define I2S_LRC  8
-#define I2S_DIN  10
+#define I2S_BCLK 2
+#define I2S_LRC  42
+#define I2S_DIN  1
 
 static const int kFrequencyHz = 440;
 static const int kAmplitude = 4000;

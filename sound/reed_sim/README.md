@@ -17,7 +17,7 @@ MONITOR=0 ./sound/flash.sh reed_bridge
 
 Open [http://127.0.0.1:8765](http://127.0.0.1:8765) → **Connect ESP32** → click kick/snare slots.
 
-Tempo still comes from the Bourns pot on GPIO 4.
+Tempo still comes from the Bourns pot on GPIO 14.
 
 ## Serial protocol
 

@@ -9,16 +9,16 @@
     P:1,0,1,0,1,0,1,0;0,1,0,1,0,1,0,1   (kick;snare atomic)
 
   Patterns apply at the next bar start.
-  Tempo pot on GPIO 4 → 50–170 BPM.
+  Tempo pot on GPIO 14 → 50–170 BPM.
   Playhead LEDs track the current step.
 
   Wiring:
-    BCLK → GPIO 9
-    LRC  → GPIO 8
-    DIN  → GPIO 10
-    Pot → 3.3V / GPIO 4 / GND
+    BCLK → GPIO 2
+    LRC  → GPIO 42
+    DIN  → GPIO 1
+    Pot → 3.3V / GPIO 14 / GND
     Playhead LEDs (step 0..7):
-      47, 48, 45, 38, 39, 40, 41, 42
+      21, 47, 48, 45, 38, 39, 40, 41
       each: GPIO → resistor → LED → GND
 */
 
@@ -28,10 +28,10 @@
 #include "kick_pcm.h"
 #include "snare_pcm.h"
 
-#define I2S_BCLK 9
-#define I2S_LRC  8
-#define I2S_DIN  10
-#define TEMPO_POT_PIN 4
+#define I2S_BCLK 2
+#define I2S_LRC  42
+#define I2S_DIN  1
+#define TEMPO_POT_PIN 14
 
 #if KICK_SAMPLE_RATE != SNARE_SAMPLE_RATE
 #error "kick and snare sample rates must match"
@@ -41,7 +41,7 @@ static const int kSampleRate = KICK_SAMPLE_RATE;
 static const int kNumSteps = 8;
 static const int kBpmMin = 50;
 static const int kBpmMax = 170;
-static const int kLedPins[kNumSteps] = {47, 48, 45, 38, 39, 40, 41, 42};
+static const int kLedPins[kNumSteps] = {21, 47, 48, 45, 38, 39, 40, 41};
 static const i2s_data_bit_width_t kBits = I2S_DATA_BIT_WIDTH_16BIT;
 static const i2s_mode_t kMode = I2S_MODE_STD;
 static const i2s_slot_mode_t kSlot = I2S_SLOT_MODE_STEREO;
@@ -339,7 +339,7 @@ void setup() {
   Serial.println();
   Serial.println("BeatBlocks reed bridge");
   Serial.println("Send K: / S: / P: patterns from reed_sim UI");
-  Serial.println("Playhead LEDs: 47,48,45,38,39,40,41,42");
+  Serial.println("Playhead LEDs: 21,47,48,45,38,39,40,41");
 
   setupPlayheadLeds();
 

@@ -8,23 +8,23 @@ Each LED: **GPIO → 220 Ω–1 kΩ resistor → LED anode → LED cathode → G
 
 | Step | ESP32 GPIO |
 |------|------------|
-| 0 | 47 |
-| 1 | 48 |
-| 2 | 45 |
-| 3 | 38 |
-| 4 | 39 |
-| 5 | 40 |
-| 6 | 41 |
-| 7 | 42 |
+| 0 | 21 |
+| 1 | 47 |
+| 2 | 48 |
+| 3 | 45 |
+| 4 | 38 |
+| 5 | 39 |
+| 6 | 40 |
+| 7 | 41 |
 
-Chase order: **47 → 48 → 45 → 38 → 39 → 40 → 41 → 42**
+Chase order: **21 → 47 → 48 → 45 → 38 → 39 → 40 → 41**
 
 Pins already used by sound (do not reuse):
 
-- I²S: GPIO 8 (LRC), 9 (BCLK), 10 (DIN)
-- Tempo pot: GPIO 4
+- I²S: GPIO 2 (BCLK), 42 (LRC), 1 (DIN)
+- Tempo pot: GPIO 14
 
-If GPIO 45/46 misbehave (strapping pins on some S3 boards), remapping those two steps is easy in firmware.
+Note: GPIO **45** is a strapping pin — OK after boot for an LED; if boot acts weird, leave that LED disconnected during reset.
 
 ## Flash playhead chase test
 

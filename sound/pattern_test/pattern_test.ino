@@ -10,11 +10,11 @@
   BPM comes from the tempo pot (50–170).
 
   Wiring:
-    BCLK → GPIO 9
-    LRC  → GPIO 8
-    DIN  → GPIO 10
+    BCLK → GPIO 2
+    LRC  → GPIO 42
+    DIN  → GPIO 1
     Pot outer → 3.3 V
-    Pot wiper → GPIO 4
+    Pot wiper → GPIO 14
     Pot outer → GND
 */
 
@@ -24,10 +24,10 @@
 #include "kick_pcm.h"
 #include "snare_pcm.h"
 
-#define I2S_BCLK 9
-#define I2S_LRC  8
-#define I2S_DIN  10
-#define TEMPO_POT_PIN 4
+#define I2S_BCLK 2
+#define I2S_LRC  42
+#define I2S_DIN  1
+#define TEMPO_POT_PIN 14
 
 #if KICK_SAMPLE_RATE != SNARE_SAMPLE_RATE
 #error "kick and snare sample rates must match"

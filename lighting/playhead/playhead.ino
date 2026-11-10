@@ -6,13 +6,13 @@
   Wiring: GPIO → resistor → LED → GND
 
   Step → GPIO (physical order):
-    0:47  1:48  2:45  3:38  4:39  5:40  6:41  7:42
+    0:21  1:47  2:48  3:45  4:38  5:39  6:40  7:41
 */
 
 #include <Arduino.h>
 
 static const int kNumSteps = 8;
-static const int kLedPins[kNumSteps] = {47, 48, 45, 38, 39, 40, 41, 42};
+static const int kLedPins[kNumSteps] = {21, 47, 48, 45, 38, 39, 40, 41};
 static const int kStepMs = 200;
 
 static void setPlayhead(int step) {
