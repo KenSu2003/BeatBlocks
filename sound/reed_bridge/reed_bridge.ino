@@ -1,6 +1,6 @@
 /*
-  BeatBlocks — reed-switch simulator bridge
-  Board plays kick/snare from arrays updated over USB serial.
+  BeatBlocks — integrated sequencer firmware
+  Plays kick/snare from physical reeds OR reed_sim UI (OR-merged).
   UI: sound/reed_sim (Chrome Web Serial)
 
   Protocol (newline-terminated):
@@ -8,7 +8,8 @@
     S:0,1,0,1,0,1,0,1
     P:1,0,1,0,1,0,1,0;0,1,0,1,0,1,0,1   (kick;snare atomic)
 
-  Patterns apply at the next bar start.
+  UI patterns apply at the next step.
+  Live hit = reed occupied OR UI cell on.
   Tempo pot on GPIO 14 → 50–170 BPM.
   Playhead LEDs track the current step.
 
@@ -20,6 +21,9 @@
     Playhead LEDs (step 0..7):
       21, 47, 48, 45, 38, 39, 40, 41
       each: GPIO → resistor → LED → GND
+    Kick reeds:  4, 5, 6, 7, 8, 9, 10, 11
+    Snare reeds: 12, 13, 3, 15, 16, 17, 18, 46
+      each: GPIO ↔ NO reed ↔ GND (INPUT_PULLUP; LOW = magnet)
 */
 
 #include <Arduino.h>
@@ -42,6 +46,8 @@ static const int kNumSteps = 8;
 static const int kBpmMin = 50;
 static const int kBpmMax = 170;
 static const int kLedPins[kNumSteps] = {21, 47, 48, 45, 38, 39, 40, 41};
+static const int kKickReedPins[kNumSteps] = {4, 5, 6, 7, 8, 9, 10, 11};
+static const int kSnareReedPins[kNumSteps] = {12, 13, 3, 15, 16, 17, 18, 46};
 static const i2s_data_bit_width_t kBits = I2S_DATA_BIT_WIDTH_16BIT;
 static const i2s_mode_t kMode = I2S_MODE_STD;
 static const i2s_slot_mode_t kSlot = I2S_SLOT_MODE_STEREO;
@@ -59,13 +65,76 @@ static void setupPlayheadLeds() {
   }
 }
 
-static int8_t kick[kNumSteps]  = {1, 0, 0, 0, 1, 0, 0, 0};
-static int8_t snare[kNumSteps] = {0, 0, 1, 0, 0, 0, 1, 0};
+static void setupReedPins() {
+  for (int i = 0; i < kNumSteps; i++) {
+    pinMode(kKickReedPins[i], INPUT_PULLUP);
+    pinMode(kSnareReedPins[i], INPUT_PULLUP);
+  }
+}
+
+static int8_t readReed(int pin) {
+  return digitalRead(pin) == LOW ? 1 : 0;
+}
+
+// UI / serial pattern (reed_sim)
+static int8_t uiKick[kNumSteps] = {0, 0, 0, 0, 0, 0, 0, 0};
+static int8_t uiSnare[kNumSteps] = {0, 0, 0, 0, 0, 0, 0, 0};
+// Physical reed occupancy
+static int8_t reedKick[kNumSteps];
+static int8_t reedSnare[kNumSteps];
+static int8_t lastReedKick[kNumSteps];
+static int8_t lastReedSnare[kNumSteps];
 static int8_t pendingKick[kNumSteps];
 static int8_t pendingSnare[kNumSteps];
 static volatile bool patternPending = false;
 
+static void scanReeds() {
+  for (int i = 0; i < kNumSteps; i++) {
+    reedKick[i] = readReed(kKickReedPins[i]);
+    reedSnare[i] = readReed(kSnareReedPins[i]);
+  }
+}
+
+static bool rowsEqual(const int8_t *a, const int8_t *b) {
+  for (int i = 0; i < kNumSteps; i++) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+static void printPattern(const char *label, const int8_t *row);
+
+static void serialLog(const char *msg) {
+  // USB CDC Serial.print can block forever if nothing is reading —
+  // that froze the playhead when magnets triggered reed logs.
+  if (Serial.availableForWrite() < 64) {
+    return;
+  }
+  Serial.println(msg);
+}
+
+static void reportReedsIfChanged() {
+  if (rowsEqual(reedKick, lastReedKick) && rowsEqual(reedSnare, lastReedSnare)) {
+    return;
+  }
+  memcpy(lastReedKick, reedKick, sizeof(lastReedKick));
+  memcpy(lastReedSnare, reedSnare, sizeof(lastReedSnare));
+  if (Serial.availableForWrite() < 64) {
+    return;
+  }
+  Serial.print("REED ");
+  printPattern("K", reedKick);
+  Serial.print("REED ");
+  printPattern("S", reedSnare);
+}
+
 I2SClass i2s;
+static volatile bool audioReady = false;
+static volatile bool audioBusy = false;
+static volatile bool wantKick = false;
+static volatile bool wantSnare = false;
 static float bpmFiltered = 96.0f;
 static char lineBuf[96];
 static size_t lineLen = 0;
@@ -122,10 +191,12 @@ static void queuePattern(const int8_t *k, const int8_t *s) {
   memcpy(pendingKick, k, sizeof(pendingKick));
   memcpy(pendingSnare, s, sizeof(pendingSnare));
   patternPending = true;
-  Serial.print("OK queued ");
-  printPattern("K", pendingKick);
-  Serial.print("OK queued ");
-  printPattern("S", pendingSnare);
+  if (Serial.availableForWrite() >= 64) {
+    Serial.print("OK queued ");
+    printPattern("K", pendingKick);
+    Serial.print("OK queued ");
+    printPattern("S", pendingSnare);
+  }
 }
 
 static void applyPendingIfAny() {
@@ -133,14 +204,16 @@ static void applyPendingIfAny() {
     return;
   }
   noInterrupts();
-  memcpy(kick, pendingKick, sizeof(kick));
-  memcpy(snare, pendingSnare, sizeof(snare));
+  memcpy(uiKick, pendingKick, sizeof(uiKick));
+  memcpy(uiSnare, pendingSnare, sizeof(uiSnare));
   patternPending = false;
   interrupts();
-  Serial.print("OK live ");
-  printPattern("K", kick);
-  Serial.print("OK live ");
-  printPattern("S", snare);
+  if (Serial.availableForWrite() >= 64) {
+    Serial.print("OK live UI ");
+    printPattern("K", uiKick);
+    Serial.print("OK live UI ");
+    printPattern("S", uiSnare);
+  }
 }
 
 static void handleLine(char *line) {
@@ -158,7 +231,7 @@ static void handleLine(char *line) {
       return;
     }
     int8_t nextSnare[kNumSteps];
-    memcpy(nextSnare, patternPending ? pendingSnare : snare, sizeof(nextSnare));
+    memcpy(nextSnare, patternPending ? pendingSnare : uiSnare, sizeof(nextSnare));
     queuePattern(row, nextSnare);
     return;
   }
@@ -170,7 +243,7 @@ static void handleLine(char *line) {
       return;
     }
     int8_t nextKick[kNumSteps];
-    memcpy(nextKick, patternPending ? pendingKick : kick, sizeof(nextKick));
+    memcpy(nextKick, patternPending ? pendingKick : uiKick, sizeof(nextKick));
     queuePattern(nextKick, row);
     return;
   }
@@ -193,8 +266,10 @@ static void handleLine(char *line) {
   }
 
   if ((line[0] == 'Q' || line[0] == 'q') && line[1] == '\0') {
-    printPattern("K", kick);
-    printPattern("S", snare);
+    printPattern("UIK", uiKick);
+    printPattern("UIS", uiSnare);
+    printPattern("RK", reedKick);
+    printPattern("RS", reedSnare);
     Serial.printf("BPM %d\n", currentBpm());
     return;
   }
@@ -228,6 +303,9 @@ static int16_t readPgmSample(const int16_t *pcm, size_t index) {
 }
 
 static void writeStereoFrames(const int16_t *mono, size_t n) {
+  if (!audioReady) {
+    return;
+  }
   static int16_t frame[256];
   for (size_t s = 0; s < n; s++) {
     frame[s * 2] = mono[s];
@@ -236,26 +314,18 @@ static void writeStereoFrames(const int16_t *mono, size_t n) {
   i2s.write(frame, n * 2 * sizeof(int16_t));
 }
 
-static void playSilenceFrames(size_t totalFrames) {
-  static int16_t zeros[128];
-  memset(zeros, 0, sizeof(zeros));
-  size_t written = 0;
-  while (written < totalFrames) {
-    pollSerial();
-    size_t n = totalFrames - written;
-    if (n > 128) {
-      n = 128;
-    }
-    writeStereoFrames(zeros, n);
-    written += n;
-  }
-}
-
-static void playSilenceMs(int durationMs) {
+// Keep playhead moving even when the amp/I2S path is unhappy.
+static void waitStepMs(int durationMs) {
   if (durationMs <= 0) {
     return;
   }
-  playSilenceFrames((size_t)kSampleRate * (size_t)durationMs / 1000);
+  const unsigned long start = millis();
+  while ((int)(millis() - start) < durationMs) {
+    pollSerial();
+    applyPendingIfAny();
+    scanReeds();
+    delay(1);
+  }
 }
 
 static int16_t mixSample(int16_t a, int16_t b) {
@@ -269,12 +339,8 @@ static int16_t mixSample(int16_t a, int16_t b) {
   return (int16_t)sum;
 }
 
-static void playStep(bool playKick, bool playSnare, int stepMs) {
-  const unsigned long startMs = millis();
-  pollSerial();
-
-  if (!playKick && !playSnare) {
-    playSilenceMs(stepMs);
+static void playHitOnAudioCore(bool playKick, bool playSnare) {
+  if (!audioReady || (!playKick && !playSnare)) {
     return;
   }
 
@@ -283,7 +349,6 @@ static void playStep(bool playKick, bool playSnare, int stepMs) {
 
   if (playKick && !playSnare) {
     while (i < KICK_NUM_SAMPLES) {
-      pollSerial();
       size_t n = KICK_NUM_SAMPLES - i;
       if (n > 128) {
         n = 128;
@@ -296,7 +361,6 @@ static void playStep(bool playKick, bool playSnare, int stepMs) {
     }
   } else if (playSnare && !playKick) {
     while (i < SNARE_NUM_SAMPLES) {
-      pollSerial();
       size_t n = SNARE_NUM_SAMPLES - i;
       if (n > 128) {
         n = 128;
@@ -310,7 +374,6 @@ static void playStep(bool playKick, bool playSnare, int stepMs) {
   } else {
     const size_t total = max(KICK_NUM_SAMPLES, SNARE_NUM_SAMPLES);
     while (i < total) {
-      pollSerial();
       size_t n = total - i;
       if (n > 128) {
         n = 128;
@@ -325,55 +388,81 @@ static void playStep(bool playKick, bool playSnare, int stepMs) {
       i += n;
     }
   }
+}
 
-  const int elapsed = (int)(millis() - startMs);
-  const int remain = stepMs - elapsed;
-  if (remain > 0) {
-    playSilenceMs(remain);
+static void audioTask(void *param) {
+  (void)param;
+  // Let playhead run a moment before touching I2S.
+  vTaskDelay(pdMS_TO_TICKS(1500));
+
+  i2s.setPins(I2S_BCLK, I2S_LRC, I2S_DIN);
+  const bool ok = i2s.begin(kMode, kSampleRate, kBits, kSlot);
+  audioReady = ok;
+  serialLog(ok ? "I2S ready (audio core)" : "I2S failed (LEDs keep running)");
+
+  for (;;) {
+    if (!audioBusy && (wantKick || wantSnare)) {
+      const bool k = wantKick;
+      const bool s = wantSnare;
+      wantKick = false;
+      wantSnare = false;
+      audioBusy = true;
+      playHitOnAudioCore(k, s);
+      audioBusy = false;
+    }
+    vTaskDelay(pdMS_TO_TICKS(1));
   }
 }
 
 void setup() {
-  Serial.begin(115200);
-  delay(500);
-  Serial.println();
-  Serial.println("BeatBlocks reed bridge");
-  Serial.println("Send K: / S: / P: patterns from reed_sim UI");
-  Serial.println("Playhead LEDs: 21,47,48,45,38,39,40,41");
-
+  // LEDs first — same path as lighting/playhead (known good).
   setupPlayheadLeds();
+
+  Serial.begin(115200);
+  delay(300);
+  Serial.println();
+  Serial.println("BeatBlocks integrated (LEDs + reeds + UI + audio)");
+  Serial.println("Hit = reed OR UI cell. Playhead on main core; audio on other core.");
+
+  setupReedPins();
+  memset(reedKick, 0, sizeof(reedKick));
+  memset(reedSnare, 0, sizeof(reedSnare));
+  memset(lastReedKick, 0xFF, sizeof(lastReedKick));
+  memset(lastReedSnare, 0xFF, sizeof(lastReedSnare));
 
   analogReadResolution(12);
   analogSetPinAttenuation(TEMPO_POT_PIN, ADC_11db);
   pinMode(TEMPO_POT_PIN, INPUT);
 
-  memcpy(pendingKick, kick, sizeof(kick));
-  memcpy(pendingSnare, snare, sizeof(snare));
-  printPattern("K", kick);
-  printPattern("S", snare);
+  memcpy(pendingKick, uiKick, sizeof(pendingKick));
+  memcpy(pendingSnare, uiSnare, sizeof(pendingSnare));
 
   bpmFiltered = (float)readBpmFromPot();
-  Serial.printf("initial bpm=%d\n", (int)(bpmFiltered + 0.5f));
 
-  i2s.setPins(I2S_BCLK, I2S_LRC, I2S_DIN);
-  if (!i2s.begin(kMode, kSampleRate, kBits, kSlot)) {
-    Serial.println("Failed to initialize I2S!");
-    while (true) {
-      delay(1000);
-    }
-  }
-
-  Serial.println("I2S ready");
+  xTaskCreatePinnedToCore(audioTask, "audio", 8192, nullptr, 1, nullptr, 0);
 }
 
 void loop() {
-  pollSerial();
-  applyPendingIfAny();
-
   for (int i = 0; i < kNumSteps; i++) {
-    pollSerial();
     setPlayhead(i);
-    const int liveBpm = currentBpm();
-    playStep(kick[i] != 0, snare[i] != 0, stepDurationMs(liveBpm));
+    pollSerial();
+    applyPendingIfAny();
+    scanReeds();
+    reportReedsIfChanged();
+
+    const bool playKick = (uiKick[i] != 0) || (reedKick[i] != 0);
+    const bool playSnare = (uiSnare[i] != 0) || (reedSnare[i] != 0);
+    // One-shot while audio core is free — don't stack hits into a stall.
+    if (!audioBusy) {
+      if (playKick) {
+        wantKick = true;
+      }
+      if (playSnare) {
+        wantSnare = true;
+      }
+    }
+
+    // Main core never blocks on I2S — only times the playhead.
+    waitStepMs(stepDurationMs(currentBpm()));
   }
 }
