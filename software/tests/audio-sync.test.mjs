@@ -10,23 +10,24 @@ const html=fs.readFileSync(new URL('../public/index.html',import.meta.url),'utf8
 let code=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 code=code.replace('queue.push({time:', 'auditEvents.push({time:nextTime,step:nextStep,hits:hits.slice(),loop,applied,partner:partner.slice()});queue.push({time:');
 code=code.replace('queue.push({time:audioTime,', 'auditEvents.push({time:audioTime,serverAt:tick.at,absoluteStep:tick.step,frameRevision:frame.revision,hits:hits.slice()});queue.push({time:audioTime,');
-code=code.replace(/\}\)\(\);\s*$/,`window.testHooks={scheduler,animate,stop,start,valid,share:(p)=>{session={playback:p,clock:{ready:true,offset:epoch-perfOrigin,errorMs:0,now:()=>epoch+performance.now()-perfOrigin,toServer:t=>t+epoch-perfOrigin,toPerformance:t=>t-epoch+perfOrigin},monotonic:()=>performance.now(),get lastContact(){return performance.now()-sessionAge();},syncClock:async()=>{},queue:[]};const f=p.frames.at(-1);receiveShared({pattern:f.pattern,partner:f.partner,bpm:f.bpm});},updatePlayback:p=>{session.playback=p;},get:()=>({pattern:clone(pattern),draft:draft.slice(),partner:partner.slice(),pending:pending?.slice(),playing,bpm,nextStep,nextTime,queue:queue.slice(),sources:activeSources.size})};})();`);
+code=code.replace(/\}\)\(\);\s*$/,`window.testHooks={scheduler,animate,stop,start,valid,share:(p)=>{session={playback:p,clock:{ready:true,offset:epoch-perfOrigin,errorMs:0,now:()=>epoch+performance.now()-perfOrigin,toServer:t=>t+epoch-perfOrigin,toPerformance:t=>t-epoch+perfOrigin},monotonic:()=>performance.now(),get lastContact(){return performance.now()-sessionAge();},syncClock:async()=>{},queue:[]};const f=p.frames.at(-1);receiveShared({pattern:f.pattern,partner:f.partner,bpm:f.bpm,soundSet:f.soundSet});},updatePlayback:p=>{session.playback=p;},get:()=>({pattern:clone(pattern),draft:draft.slice(),partner:partner.slice(),pending:pending?.slice(),playing,bpm,nextStep,nextTime,queue:queue.slice(),sources:activeSources.size})};})();`);
+code=code.replace('function playInstrument(id,time){','function playInstrument(id,time){auditInstruments.push({id,time});');
 class Element {
  constructor(){this.children=[];this.listeners={};this.attrs={};this.dataset={};this.style={setProperty(){}};this.classList={add(){},remove(){}};this.value='';this.checked=false;this.hidden=false;this.disabled=false;}
  appendChild(e){this.children.push(e);return e;} setAttribute(k,v){this.attrs[k]=v;} addEventListener(k,fn){this.listeners[k]=fn;} async fire(k){return this.listeners[k]?.({target:this});}
 }
 function setup({begin=0,audioOrigin=0,latency=0,perfOrigin=0}={}){
  const saved=null;let contactAge=0;const epoch=100000;
- const els={},events=[],sources=[],store=new Map(saved?[['beatblocks-demo-v1',saved]]:[]);let clock=begin;
+ const els={},events=[],instruments=[],sources=[],store=new Map(saved?[['beatblocks-demo-v1',saved]]:[]);let clock=begin;
  const el=id=>els[id]??=(new Element());el('tempo').value='96';el('volume').value='55';
  const param=()=>({value:0,setValueAtTime(){},exponentialRampToValueAtTime(){},setTargetAtTime(){}});
  const node=kind=>({kind,gain:param(),frequency:param(),connect(){},disconnect(){},addEventListener(){},start(t){sources.push({kind,time:t});},stop(){}});
  class Audio {constructor(){this.state='running';this.sampleRate=48000;this.destination={};}get currentTime(){return clock-audioOrigin;}get outputLatency(){return latency;}getOutputTimestamp(){return {contextTime:clock-audioOrigin-latency,performanceTime:clock*1000+perfOrigin};}async resume(){}createGain(){return node('gain');}createBuffer(n,length){return{getChannelData(){return new Float32Array(length);}};}createOscillator(){return node('oscillator');}createBufferSource(){return node('noise');}createBiquadFilter(){return node('filter');}}
  const document={getElementById:el,createElement:()=>new Element(),listeners:{},addEventListener(k,v){this.listeners[k]=v;},hidden:false};
  const window={AudioContext:Audio,addEventListener(){}};
- const ctx={window,document,performance:{now:()=>clock*1000+perfOrigin},epoch,perfOrigin,sessionAge:()=>contactAge,auditEvents:events,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},setInterval:()=>1,clearInterval(){},requestAnimationFrame:()=>1,cancelAnimationFrame(){},console,Math,Array,Set,Number,JSON,Error};
+ const ctx={window,document,performance:{now:()=>clock*1000+perfOrigin},epoch,perfOrigin,sessionAge:()=>contactAge,atob,auditEvents:events,auditInstruments:instruments,localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},setInterval:()=>1,clearInterval(){},requestAnimationFrame:()=>1,cancelAnimationFrame(){},console,Math,Array,Set,Number,JSON,Error};
  vm.runInNewContext(code,ctx);const h=window.testHooks;
- return{el,h,events,sources,document,store,contactAge:n=>contactAge=n,async click(id){await el(id).fire('click');},advance(seconds){const end=clock+seconds;while(clock<end-1e-8){clock=Math.min(end,clock+.005);h.scheduler();h.animate();}},async tempo(n){el('tempo').value=String(n);await el('tempo').fire('input');},async preset(p){el('preset').value=p;await el('preset').fire('change');},async local(r,s){await el('sequence').children[9+r*9+1+s].fire('click');}};
+ return{el,h,events,instruments,sources,document,store,contactAge:n=>contactAge=n,async click(id){await el(id).fire('click');},advance(seconds){const end=clock+seconds;while(clock<end-1e-8){clock=Math.min(end,clock+.005);h.scheduler();h.animate();}},async tempo(n){el('tempo').value=String(n);await el('tempo').fire('input');},async preset(p){el('preset').value=p;await el('preset').fire('change');},async local(r,s){await el('sequence').children[9+r*9+1+s].fire('click');}};
 }
 
 const seed={pattern:[[1,0,0,0,1,0,0,0],[0,0,1,0,0,0,1,0]],partner:[1,0,1,0,1,0,1,0],bpm:120};
@@ -65,4 +66,39 @@ test('actual audio scheduler: unacknowledged edits do not become audible early',
  assert.equal(a.h.get().pattern[0][0],0);assert.equal(a.h.get().bpm,60);
  a.advance(3);const events=sharedEvents(a);assert.ok(events.filter(e=>e.absoluteStep%8===0).every(e=>e.hits[0]));
  assert.ok(events.length>8);assert.equal(events[1].serverAt-events[0].serverAt,250);
+});
+
+test('solo sound-set selector preserves notes and changes sound at the next loop',async()=>{
+ const a=setup();await a.click('play');a.advance(.4);const before=JSON.stringify(a.h.get().pattern);
+ a.el('sound-set').value='wood';await a.el('sound-set').fire('change');
+ assert.equal(JSON.stringify(a.h.get().pattern),before);
+ assert.equal(a.el('track-name-0').textContent,'Woodblock');
+ a.advance(1.5);assert.ok(a.instruments.length>0);assert.ok(a.instruments.every(x=>['kick','snare'].includes(x.id)));
+ a.advance(2);assert.ok(a.instruments.some(x=>x.id==='woodblock'));assert.ok(a.instruments.some(x=>x.id==='claves'));
+});
+test('local save restores its sound set and legacy copies use drums',async()=>{
+ const a=setup();a.el('sound-set').value='percussion';await a.el('sound-set').fire('change');await a.click('save');
+ const saved=JSON.parse(a.store.get('beatblocks-demo-v1'));assert.equal(saved.soundSet,'percussion');
+ a.el('sound-set').value='wood';await a.el('sound-set').fire('change');await a.click('restore');assert.equal(a.el('sound-set').value,'percussion');
+ delete saved.soundSet;a.store.set('beatblocks-demo-v1',JSON.stringify(saved));await a.click('restore');assert.equal(a.el('sound-set').value,'drums');
+ assert.equal(a.h.valid({...saved,soundSet:'missing'}),false);
+});
+test('shared audio uses the committed set, then switches both browsers at its boundary',async()=>{
+ const first=initialPlayback({...seed,soundSet:'drums'},100000,0);
+ const next=schedulePlayback(first,{...seed,soundSet:'wood'},100500,1);
+ for(const begin of [0,.7]){
+  const a=setup({begin});a.h.share(next);await a.click('play');a.advance(6-begin);
+  assert.ok(a.instruments.length>0);
+  assert.ok(a.instruments.filter(x=>100000+x.time*1000<104000).every(x=>['kick','snare'].includes(x.id)));
+  assert.ok(a.instruments.filter(x=>100000+x.time*1000>=104000).some(x=>x.id==='woodblock'));
+ }
+});
+
+test('default Drums retains its original oscillator/noise voices after switching back',async()=>{
+ const a=setup();await a.click('play');a.advance(.7);
+ assert.equal(a.instruments[0].id,'kick');assert.equal(a.sources[0].kind,'oscillator');
+ assert.ok(a.sources.some(x=>x.kind==='noise'));
+ a.el('sound-set').value='wood';await a.el('sound-set').fire('change');a.advance(3);
+ a.el('sound-set').value='drums';await a.el('sound-set').fire('change');a.advance(3);
+ assert.ok(a.instruments.slice(-2).every(x=>['kick','snare'].includes(x.id)));
 });

@@ -12,7 +12,7 @@
 - Sets: `drums` = Kick/Snare, `percussion` = Tom/Clap, `wood` = Woodblock/Claves.
 - Two rows, eight steps, 50–170 BPM; existing pins and hi-hat behavior stay intact.
 - Legacy beats default to drums. Unsupported IDs fail validation.
-- Firmware and browser use matching preloaded PCM; no new hardware or dependencies.
+- New sets use matching preloaded PCM on firmware and browser; preserve each existing Drums playback path. No new hardware or dependencies.
 - Board selection uses USB. Cloud sessions synchronize browsers.
 - Publish the source to branch `software`; no automatic board flashing or remote-branch merge.
 

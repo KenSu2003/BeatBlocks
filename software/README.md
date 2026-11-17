@@ -4,6 +4,10 @@ Live demo: https://hitianji.github.io/beatblocks-demo/
 
 Click **Create session**, copy the invitation link, and open it on another device. Both people can edit the kick, snare, hi-hat, and tempo. Press **Play** whenever you join: playback follows the session's current position. Session changes save automatically; **Save local copy** keeps a separate browser-local copy.
 
+## Sound sets
+
+Choose **Drums**, **Percussion**, or **Wood** above the board. The selected set is saved with local/shared beats and changes at a loop boundary during playback. The original Drums sounds remain unchanged. See [board setup and verification](../docs/SOUND_SETS.md) for the USB selector and bench checks.
+
 ## Development
 
 Requires **Node.js 22.13 or newer** and npm. From the repository root:

@@ -4,7 +4,7 @@ Goal: keep the two eight-step block rows and let users change their instruments 
 
 Use three preloaded sets: `drums` (Kick / Snare), `percussion` (Tom / Clap), and `wood` (Woodblock / Claves). Drums remains the default. The browser hi-hat track is unchanged. A set changes both row instruments; occupancy and tempo remain unchanged.
 
-Separate occupancy, selected sound set, and sample playback. Preserve the latest development branch's pin map, physical-reed OR browser-pattern behavior, tempo pot, and playhead. Preserve the existing kick/snare PCM data; generate the four new sounds deterministically. Export matching PCM data to the browser. Use a fixed-size mixer so overlapping sample tails do not drop steps at 170 BPM.
+Separate occupancy, selected sound set, and sample playback. Preserve the latest development branch's pin map, physical-reed OR browser-pattern behavior, tempo pot, and playhead. Preserve the existing kick/snare PCM data; generate the four new sounds deterministically. Export matching PCM data to the browser for the new sets. Following the user’s preservation request, retain the existing browser kick/snare synthesis unchanged; hardware Drums retains its original PCM samples. Use a fixed-size mixer so overlapping sample tails do not drop steps at 170 BPM.
 
 The web demo selects sets, saves them locally, and sends them through the existing session API and musical timeline. Shared changes become audible at the existing future loop boundary. Old saved beats/rooms without a sound-set field use drums; unknown set IDs are rejected. Keep the immutable database migration: room state is already JSON.
 

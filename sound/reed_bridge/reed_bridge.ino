@@ -1,9 +1,10 @@
 /*
   BeatBlocks — integrated sequencer firmware
-  Plays kick/snare from physical reeds OR reed_sim UI (OR-merged).
+  Plays selectable instruments from physical reeds OR reed_sim UI (OR-merged).
   UI: sound/reed_sim (Chrome Web Serial)
 
   Protocol (newline-terminated):
+    KIT:drums / KIT:percussion / KIT:wood (applies at step zero)
     K:1,0,1,0,1,0,1,0
     S:0,1,0,1,0,1,0,1
     P:1,0,1,0,1,0,1,0;0,1,0,1,0,1,0,1   (kick;snare atomic)
@@ -29,8 +30,10 @@
 #include <Arduino.h>
 #include <ESP_I2S.h>
 
-#include "kick_pcm.h"
-#include "snare_pcm.h"
+#include "SoundBank.h"
+#include "SampleMixer.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 
 #define I2S_BCLK 2
 #define I2S_LRC  42
@@ -132,9 +135,9 @@ static void reportReedsIfChanged() {
 
 I2SClass i2s;
 static volatile bool audioReady = false;
-static volatile bool audioBusy = false;
-static volatile bool wantKick = false;
-static volatile bool wantSnare = false;
+struct AudioHit { bool top; bool bottom; beatblocks::SoundSet soundSet; };
+static QueueHandle_t hitQueue=nullptr;
+static beatblocks::SoundSetState soundSetState;
 static float bpmFiltered = 96.0f;
 static char lineBuf[96];
 static size_t lineLen = 0;
@@ -224,6 +227,12 @@ static void handleLine(char *line) {
     return;
   }
 
+  if (strncmp(line,"KIT:",4)==0) {
+    if(!soundSetState.queueCommand(line)) { serialLog("ERR unknown sound set");return; }
+    if(Serial.availableForWrite()>=64) Serial.printf("OK queued KIT:%s\n",beatblocks::soundSetId(soundSetState.pending));
+    return;
+  }
+
   if ((line[0] == 'K' || line[0] == 'k') && line[1] == ':') {
     int8_t row[kNumSteps];
     if (!parseRow(line + 2, row)) {
@@ -266,6 +275,7 @@ static void handleLine(char *line) {
   }
 
   if ((line[0] == 'Q' || line[0] == 'q') && line[1] == '\0') {
+    Serial.printf("KIT:%s\n",beatblocks::soundSetId(soundSetState.active));
     printPattern("UIK", uiKick);
     printPattern("UIS", uiSnare);
     printPattern("RK", reedKick);
@@ -274,7 +284,7 @@ static void handleLine(char *line) {
     return;
   }
 
-  Serial.println("ERR unknown cmd (use K: / S: / P: / Q)");
+  Serial.println("ERR unknown cmd (use KIT: / K: / S: / P: / Q)");
 }
 
 static void pollSerial() {
@@ -298,10 +308,6 @@ static void pollSerial() {
   }
 }
 
-static int16_t readPgmSample(const int16_t *pcm, size_t index) {
-  return (int16_t)pgm_read_word(&pcm[index]);
-}
-
 static void writeStereoFrames(const int16_t *mono, size_t n) {
   if (!audioReady) {
     return;
@@ -311,7 +317,7 @@ static void writeStereoFrames(const int16_t *mono, size_t n) {
     frame[s * 2] = mono[s];
     frame[s * 2 + 1] = mono[s];
   }
-  i2s.write(frame, n * 2 * sizeof(int16_t));
+  i2s.write(reinterpret_cast<const uint8_t*>(frame), n * 2 * sizeof(int16_t));
 }
 
 // Keep playhead moving even when the amp/I2S path is unhappy.
@@ -328,68 +334,6 @@ static void waitStepMs(int durationMs) {
   }
 }
 
-static int16_t mixSample(int16_t a, int16_t b) {
-  const int32_t sum = (int32_t)a + (int32_t)b;
-  if (sum > 32767) {
-    return 32767;
-  }
-  if (sum < -32768) {
-    return -32768;
-  }
-  return (int16_t)sum;
-}
-
-static void playHitOnAudioCore(bool playKick, bool playSnare) {
-  if (!audioReady || (!playKick && !playSnare)) {
-    return;
-  }
-
-  size_t i = 0;
-  static int16_t buf[128];
-
-  if (playKick && !playSnare) {
-    while (i < KICK_NUM_SAMPLES) {
-      size_t n = KICK_NUM_SAMPLES - i;
-      if (n > 128) {
-        n = 128;
-      }
-      for (size_t s = 0; s < n; s++) {
-        buf[s] = readPgmSample(KICK_PCM, i + s);
-      }
-      writeStereoFrames(buf, n);
-      i += n;
-    }
-  } else if (playSnare && !playKick) {
-    while (i < SNARE_NUM_SAMPLES) {
-      size_t n = SNARE_NUM_SAMPLES - i;
-      if (n > 128) {
-        n = 128;
-      }
-      for (size_t s = 0; s < n; s++) {
-        buf[s] = readPgmSample(SNARE_PCM, i + s);
-      }
-      writeStereoFrames(buf, n);
-      i += n;
-    }
-  } else {
-    const size_t total = max(KICK_NUM_SAMPLES, SNARE_NUM_SAMPLES);
-    while (i < total) {
-      size_t n = total - i;
-      if (n > 128) {
-        n = 128;
-      }
-      for (size_t s = 0; s < n; s++) {
-        const size_t idx = i + s;
-        const int16_t k = (idx < KICK_NUM_SAMPLES) ? readPgmSample(KICK_PCM, idx) : 0;
-        const int16_t sn = (idx < SNARE_NUM_SAMPLES) ? readPgmSample(SNARE_PCM, idx) : 0;
-        buf[s] = mixSample(k, sn);
-      }
-      writeStereoFrames(buf, n);
-      i += n;
-    }
-  }
-}
-
 static void audioTask(void *param) {
   (void)param;
   // Let playhead run a moment before touching I2S.
@@ -400,17 +344,17 @@ static void audioTask(void *param) {
   audioReady = ok;
   serialLog(ok ? "I2S ready (audio core)" : "I2S failed (LEDs keep running)");
 
+  beatblocks::SampleMixer mixer;
+  int16_t buf[128];
   for (;;) {
-    if (!audioBusy && (wantKick || wantSnare)) {
-      const bool k = wantKick;
-      const bool s = wantSnare;
-      wantKick = false;
-      wantSnare = false;
-      audioBusy = true;
-      playHitOnAudioCore(k, s);
-      audioBusy = false;
+    if(!audioReady) { vTaskDelay(pdMS_TO_TICKS(10));continue; }
+    AudioHit hit;
+    if(xQueueReceive(hitQueue,&hit,0)==pdTRUE) {
+      if(hit.top) mixer.trigger(beatblocks::sampleFor(hit.soundSet,0));
+      if(hit.bottom) mixer.trigger(beatblocks::sampleFor(hit.soundSet,1));
     }
-    vTaskDelay(pdMS_TO_TICKS(1));
+    mixer.render(buf,128);
+    writeStereoFrames(buf,128); // I2S/DMA paces audio; main-core sensing remains responsive.
   }
 }
 
@@ -439,7 +383,9 @@ void setup() {
 
   bpmFiltered = (float)readBpmFromPot();
 
-  xTaskCreatePinnedToCore(audioTask, "audio", 8192, nullptr, 1, nullptr, 0);
+  hitQueue=xQueueCreate(1,sizeof(AudioHit));
+  if(hitQueue) xTaskCreatePinnedToCore(audioTask, "audio", 8192, nullptr, 1, nullptr, 0);
+  else serialLog("Audio queue allocation failed");
 }
 
 void loop() {
@@ -447,19 +393,17 @@ void loop() {
     setPlayhead(i);
     pollSerial();
     applyPendingIfAny();
+    if(soundSetState.atStep(i) && Serial.availableForWrite()>=64)
+      Serial.printf("OK live KIT:%s\n",beatblocks::soundSetId(soundSetState.active));
     scanReeds();
     reportReedsIfChanged();
 
     const bool playKick = (uiKick[i] != 0) || (reedKick[i] != 0);
     const bool playSnare = (uiSnare[i] != 0) || (reedSnare[i] != 0);
-    // One-shot while audio core is free — don't stack hits into a stall.
-    if (!audioBusy) {
-      if (playKick) {
-        wantKick = true;
-      }
-      if (playSnare) {
-        wantSnare = true;
-      }
+    if(audioReady && hitQueue && (playKick || playSnare)) {
+      const AudioHit hit{playKick,playSnare,soundSetState.active};
+      // Retain only the newest event if I2S stalls; never replay a backlog.
+      xQueueOverwrite(hitQueue,&hit);
     }
 
     // Main core never blocks on I2S — only times the playhead.
