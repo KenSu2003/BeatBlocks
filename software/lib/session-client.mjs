@@ -11,7 +11,7 @@ export class SharedSessionClient {
  snapshot(){
   if(!this.canonical)return null;
   const s=JSON.parse(JSON.stringify(this.canonical));
-  for(const op of this.queue)for(const c of op.changes){if('bpm' in c)s.bpm=c.bpm;else (c.row===2?s.partner:s.pattern[c.row])[c.step]=c.value;}
+  for(const op of this.queue)for(const c of op.changes){if('bpm' in c)s.bpm=c.bpm;else if('soundSet' in c)s.soundSet=c.soundSet;else (c.row===2?s.partner:s.pattern[c.row])[c.step]=c.value;}
   return s;
  }
  emit(){if(!this.closed&&this.canonical)this.onState(this.snapshot());}

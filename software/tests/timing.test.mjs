@@ -50,3 +50,11 @@ test('fallback output mapping uses reported base and output latency',()=>{
 test('late scheduler wake-ups skip missed notes instead of bursting or restarting',()=>{
  const p=initialPlayback(beat(),100000,0);const resumed=nextTick(p,111040,4);assert.equal(resumed.step,45);assert.equal(resumed.at,111250);
 });
+
+test('sound set changes preserve rhythm and wait for the scheduled boundary',()=>{
+ const first=initialPlayback({...beat(),soundSet:'drums'},100000,0);
+ const next=schedulePlayback(first,{...beat(),soundSet:'wood'},100500,1);
+ assert.equal(positionAt(next,103999).frame.soundSet,'drums');
+ assert.equal(positionAt(next,104000).frame.soundSet,'wood');
+ assert.deepEqual(positionAt(next,104000).frame.pattern,beat().pattern);
+});

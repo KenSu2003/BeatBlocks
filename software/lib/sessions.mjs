@@ -1,11 +1,12 @@
+import {isSoundSet,soundSetOrDefault} from './sound-catalog.mjs';
 import {initialPlayback,schedulePlayback} from './timing.mjs';
 const ROW=v=>Array.isArray(v)&&v.length===8&&v.every(x=>x===0||x===1);
 const TEMPO=v=>Number.isInteger(v)&&v>=50&&v<=170;
 const TOKEN=/^[a-f0-9]{64}$/;
 const CLIENT=/^[a-f0-9]{32}$/;
-const validState=s=>s&&Array.isArray(s.pattern)&&s.pattern.length===2&&s.pattern.every(ROW)&&ROW(s.partner)&&TEMPO(s.bpm);
-const validChange=c=>c&&typeof c==='object'&&(Object.keys(c).length===1&&TEMPO(c.bpm)||Object.keys(c).length===3&&Number.isInteger(c.row)&&c.row>=0&&c.row<=2&&Number.isInteger(c.step)&&c.step>=0&&c.step<8&&(c.value===0||c.value===1));
-const publicState=s=>({pattern:s.pattern,partner:s.partner,bpm:s.bpm});
+const validState=s=>s&&Array.isArray(s.pattern)&&s.pattern.length===2&&s.pattern.every(ROW)&&ROW(s.partner)&&TEMPO(s.bpm)&&(s.soundSet===undefined||isSoundSet(s.soundSet));
+const validChange=c=>c&&typeof c==='object'&&(Object.keys(c).length===1&&(TEMPO(c.bpm)||isSoundSet(c.soundSet))||Object.keys(c).length===3&&Number.isInteger(c.row)&&c.row>=0&&c.row<=2&&Number.isInteger(c.step)&&c.step>=0&&c.step<8&&(c.value===0||c.value===1));
+const publicState=s=>({pattern:s.pattern,partner:s.partner,bpm:s.bpm,soundSet:soundSetOrDefault(s.soundSet)});
 const fail=(message,status=400)=>Object.assign(new Error(message),{status});
 async function bodyOf(request){
  if(!request.headers.get('Content-Type')?.startsWith('application/json'))throw fail('Send JSON.');
@@ -21,7 +22,7 @@ async function rate(db,key,max){
 async function responseState(db,room){
  const state=JSON.parse(room.state);
  const count=await db.prepare('SELECT COUNT(*) AS count FROM participants WHERE room_id=? AND seen_at>?').bind(room.id,Date.now()-35000).first();
- return {id:room.id,revision:room.revision,state:publicState(state),playback:state.playback||initialPlayback(state,room.updated_at,room.revision),connected:count.count};
+ return {id:room.id,revision:room.revision,state:publicState(state),playback:state.playback?{frames:state.playback.frames.map(f=>({...f,soundSet:soundSetOrDefault(f.soundSet)}))}:initialPlayback(state,room.updated_at,room.revision),connected:count.count};
 }
 export async function handleSessionRequest(request,binding){
  const serverReceived=Date.now();
@@ -60,14 +61,14 @@ export async function handleSessionRequest(request,binding){
    await db.prepare('INSERT INTO participants(room_id,client_id,seen_at) VALUES(?,?,?) ON CONFLICT(room_id,client_id) DO UPDATE SET seen_at=excluded.seen_at').bind(id,input.clientId,Date.now()).run();
    return json(await responseState(db,room));
   }
-  if(input.type!=='edit'||!Number.isSafeInteger(input.seq)||input.seq<1||!Array.isArray(input.changes)||!input.changes.length||input.changes.length>25||!input.changes.every(validChange))throw fail('Invalid change.');
+  if(input.type!=='edit'||!Number.isSafeInteger(input.seq)||input.seq<1||!Array.isArray(input.changes)||!input.changes.length||input.changes.length>26||!input.changes.every(validChange))throw fail('Invalid change.');
   await rate(db,'edit:'+id+':'+Math.floor(Date.now()/60000),600);
   for(let attempt=0;attempt<8;attempt++){
    const state=JSON.parse(room.state);
    if((state.seen[input.clientId]||0)>=input.seq)return json(await responseState(db,room));
    if(Object.keys(state.seen).length>=256&&!state.seen[input.clientId])throw fail('This session is full. Create a new session.',409);
    const previousPlayback=state.playback||initialPlayback(state,room.updated_at,room.revision);
-   for(const change of input.changes){if('bpm' in change)state.bpm=change.bpm;else (change.row===2?state.partner:state.pattern[change.row])[change.step]=change.value;}
+   for(const change of input.changes){if('bpm' in change)state.bpm=change.bpm;else if('soundSet' in change)state.soundSet=change.soundSet;else (change.row===2?state.partner:state.pattern[change.row])[change.step]=change.value;}
    state.seen[input.clientId]=input.seq;
    state.playback=schedulePlayback(previousPlayback,state,Date.now(),room.revision+1);
    const next={id,state:JSON.stringify(state),revision:room.revision+1,updated_at:Date.now()};

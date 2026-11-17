@@ -32,3 +32,10 @@ test('an acknowledgement older than a poll does not roll the board back',async()
  let newest=state();newest.pattern[0][0]=0;newest.pattern[1][1]=1;c.accept(response(3,newest));
  resolve({ok:true,json:async()=>response(1)});await pause();assert.equal(c.snapshot().pattern[1][1],1);assert.equal(c.snapshot().pattern[0][0],0);c.close();
 });
+
+test('queued sound set overlays preserve concurrent remote notes during reconnect',()=>{
+ const c=new SharedSessionClient({roomId:'x',clientId:'a',onState(){},onStatus(){}});
+ c.accept(response(0,{...state(),soundSet:'drums'}));c.sending=true;
+ c.edit([{soundSet:'wood'}]);const remote={...state(),soundSet:'drums'};remote.pattern[1][4]=1;
+ c.accept(response(1,remote));assert.equal(c.snapshot().soundSet,'wood');assert.equal(c.snapshot().pattern[1][4],1);c.close();
+});

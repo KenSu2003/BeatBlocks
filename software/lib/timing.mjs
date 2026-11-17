@@ -1,5 +1,6 @@
+import {soundSetOrDefault} from './sound-catalog.mjs';
 // Server milliseconds define musical time. A step is an eighth note; a bar is eight steps.
-export function initialPlayback(state,at,revision){return {frames:[{at,step:0,revision,bpm:state.bpm,pattern:state.pattern.map(r=>r.slice()),partner:state.partner.slice()}]};}
+export function initialPlayback(state,at,revision){return {frames:[{at,step:0,revision,bpm:state.bpm,soundSet:soundSetOrDefault(state.soundSet),pattern:state.pattern.map(r=>r.slice()),partner:state.partner.slice()}]};}
 export function positionAt(playback,time){
  const frames=playback.frames;let index=0;
  while(index+1<frames.length&&frames[index+1].at<=time+.001)index++;
@@ -22,7 +23,7 @@ export function schedulePlayback(playback,state,now,revision){
  const earliest=now+1800;
  let tick=nextTick(playback,earliest);
  while(tick.step%8!==0)tick=nextTick(playback,tick.at+.01,tick.step);
- const frame={at:tick.at,step:tick.step,revision,bpm:state.bpm,pattern:state.pattern.map(r=>r.slice()),partner:state.partner.slice()};
+ const frame={at:tick.at,step:tick.step,revision,bpm:state.bpm,soundSet:soundSetOrDefault(state.soundSet),pattern:state.pattern.map(r=>r.slice()),partner:state.partner.slice()};
  const retained=playback.frames.filter(f=>f.at<tick.at-.001);
  while(retained.length>1&&retained[1].at<now-10000)retained.shift();
  return {frames:[...retained,frame]};

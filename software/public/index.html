@@ -45,8 +45,17 @@
 (() => {
 'use strict';
 // shared-client:start
+const DEFAULT_SOUND_SET = 'drums';
+const SOUND_SETS = Object.freeze({
+ drums: {label:'Drums', instruments:['kick','snare'], names:['Kick','Snare'], hints:['Low thump','Sharp snap']},
+ percussion: {label:'Percussion', instruments:['tom','clap'], names:['Tom','Clap'], hints:['Round drum','Hand clap']},
+ wood: {label:'Wood', instruments:['woodblock','claves'], names:['Woodblock','Claves'], hints:['Hollow knock','Bright click']},
+});
+function isSoundSet(id){return typeof id==='string'&&Object.hasOwn(SOUND_SETS,id);}
+function soundSetOrDefault(id){return isSoundSet(id)?id:DEFAULT_SOUND_SET;}
+
 // Server milliseconds define musical time. A step is an eighth note; a bar is eight steps.
-function initialPlayback(state,at,revision){return {frames:[{at,step:0,revision,bpm:state.bpm,pattern:state.pattern.map(r=>r.slice()),partner:state.partner.slice()}]};}
+function initialPlayback(state,at,revision){return {frames:[{at,step:0,revision,bpm:state.bpm,soundSet:soundSetOrDefault(state.soundSet),pattern:state.pattern.map(r=>r.slice()),partner:state.partner.slice()}]};}
 function positionAt(playback,time){
  const frames=playback.frames;let index=0;
  while(index+1<frames.length&&frames[index+1].at<=time+.001)index++;
@@ -69,7 +78,7 @@ function schedulePlayback(playback,state,now,revision){
  const earliest=now+1800;
  let tick=nextTick(playback,earliest);
  while(tick.step%8!==0)tick=nextTick(playback,tick.at+.01,tick.step);
- const frame={at:tick.at,step:tick.step,revision,bpm:state.bpm,pattern:state.pattern.map(r=>r.slice()),partner:state.partner.slice()};
+ const frame={at:tick.at,step:tick.step,revision,bpm:state.bpm,soundSet:soundSetOrDefault(state.soundSet),pattern:state.pattern.map(r=>r.slice()),partner:state.partner.slice()};
  const retained=playback.frames.filter(f=>f.at<tick.at-.001);
  while(retained.length>1&&retained[1].at<now-10000)retained.shift();
  return {frames:[...retained,frame]};
@@ -111,7 +120,7 @@ class SharedSessionClient {
  snapshot(){
   if(!this.canonical)return null;
   const s=JSON.parse(JSON.stringify(this.canonical));
-  for(const op of this.queue)for(const c of op.changes){if('bpm' in c)s.bpm=c.bpm;else (c.row===2?s.partner:s.pattern[c.row])[c.step]=c.value;}
+  for(const op of this.queue)for(const c of op.changes){if('bpm' in c)s.bpm=c.bpm;else if('soundSet' in c)s.soundSet=c.soundSet;else (c.row===2?s.partner:s.pattern[c.row])[c.step]=c.value;}
   return s;
  }
  emit(){if(!this.closed&&this.canonical)this.onState(this.snapshot());}

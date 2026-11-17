@@ -63,7 +63,7 @@ test('hi-hat and tempo edits persist, and room data stays isolated',async()=>{
  const {request}=fixture();const {data:{id}}=await request('','POST',seed);const second=await request('','POST',seed);
  await request('/'+id,'POST',edit(1,[{row:2,step:7,value:1},{bpm:125}]));
  const a=await request('/'+id);assert.equal(a.data.state.partner[7],1);assert.equal(a.data.state.bpm,125);
- assert.deepEqual((await request('/'+second.data.id)).data.state,seed);
+ assert.deepEqual((await request('/'+second.data.id)).data.state,{...seed,soundSet:'drums'});
 });
 test('invalid payloads and unknown rooms fail without altering the beat',async()=>{
  const {request}=fixture();const {data:{id}}=await request('','POST',seed);
@@ -74,4 +74,39 @@ test('invalid payloads and unknown rooms fail without altering the beat',async()
 test('CORS permits the demo and rejects unrelated origins',async()=>{
  const {request}=fixture();const r=await request('','OPTIONS');assert.equal(r.status,204);assert.equal(r.headers.get('Access-Control-Allow-Origin'),'https://hitianji.github.io');
  assert.equal((await request('','POST',seed,'https://unrelated.example')).status,403);
+});
+
+test('sound sets save, rejoin, and switch only in a future playback frame',async()=>{
+ const {request}=fixture();const {data:a}=await request('','POST',{...seed,soundSet:'wood'});
+ assert.equal(a.state.soundSet,'wood');assert.equal(a.playback.frames[0].soundSet,'wood');
+ const result=await request('/'+a.id,'POST',edit(1,[{soundSet:'percussion'}]));
+ assert.equal(result.status,200);assert.equal(result.data.playback.frames[0].soundSet,'wood');
+ assert.equal(result.data.playback.frames.at(-1).soundSet,'percussion');
+ const rejoined=await request('/'+a.id);assert.equal(rejoined.data.state.soundSet,'percussion');
+ assert.deepEqual(rejoined.data.state.pattern,seed.pattern);
+});
+test('legacy rooms default to drums and reject unknown sound sets',async()=>{
+ const {request,sql}=fixture();const id='e'.repeat(64);
+ sql.prepare('INSERT INTO rooms VALUES(?,?,?,?)').run(id,JSON.stringify({...seed,seen:{}}),0,100000);
+ const legacy=await request('/'+id);assert.equal(legacy.data.state.soundSet,'drums');
+ assert.equal(legacy.data.playback.frames[0].soundSet,'drums');
+ for(const soundSet of ['unknown','',null,{},1]){
+  assert.equal((await request('','POST',{...seed,soundSet})).status,400);
+  assert.equal((await request('/'+id,'POST',edit(1,[{soundSet}]))).status,400);
+ }
+ assert.equal((await request('/'+id)).data.revision,0);
+});
+test('concurrent instrument and note changes survive and retries cannot undo a newer set',async()=>{
+ const {request}=fixture();const {data:{id}}=await request('','POST',seed);
+ const op=edit(1,[{soundSet:'wood'}]);
+ await Promise.all([request('/'+id,'POST',op),request('/'+id,'POST',edit(1,[{row:0,step:1,value:1}],other))]);
+ const a=(await request('/'+id)).data;assert.equal(a.state.soundSet,'wood');assert.equal(a.state.pattern[0][1],1);
+ await request('/'+id,'POST',edit(2,[{soundSet:'percussion'}],other));
+ assert.equal((await request('/'+id,'POST',op)).data.state.soundSet,'percussion');
+});
+test('restoring all 24 cells plus tempo and sound set is one accepted edit',async()=>{
+ const {request}=fixture();const {data:{id}}=await request('','POST',seed);
+ const changes=Array.from({length:3},(_,row)=>Array.from({length:8},(_,step)=>({row,step,value:1}))).flat();
+ changes.push({bpm:170},{soundSet:'wood'});
+ const a=await request('/'+id,'POST',edit(1,changes));assert.equal(a.status,200);assert.equal(a.data.state.soundSet,'wood');assert.equal(a.data.state.partner[7],1);
 });
