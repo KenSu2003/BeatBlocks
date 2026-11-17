@@ -39,6 +39,8 @@ bash sound/tests/run.sh
 cd software && npm run build
 ```
 
+Verified: **43 JavaScript tests**, the native mixer suite, the production web build, and an ESP32-S3 compile with core 3.3.2. The firmware uses **470,179 bytes of flash** and **22,336 bytes of static RAM**. Serial regression tests cover malformed input and delayed sound-set acknowledgements.
+
 The firmware uses a fixed eight-voice mixer so sample tails can overlap subsequent hits. An isolated kick/snare hit renders its original PCM values exactly. Dense mixes saturate at the signed 16-bit range. The audio queue keeps the newest hit if I²S stalls, avoiding a delayed burst.
 
 **Bench acceptance still required:**

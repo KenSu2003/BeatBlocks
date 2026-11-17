@@ -138,9 +138,11 @@ static volatile bool audioReady = false;
 struct AudioHit { bool top; bool bottom; beatblocks::SoundSet soundSet; };
 static QueueHandle_t hitQueue=nullptr;
 static beatblocks::SoundSetState soundSetState;
+static bool kitReportPending = false;
 static float bpmFiltered = 96.0f;
 static char lineBuf[96];
 static size_t lineLen = 0;
+static bool discardLine = false;
 
 static int readBpmFromPot() {
   uint32_t sum = 0;
@@ -160,6 +162,14 @@ static int currentBpm() {
 
 static int stepDurationMs(int bpm) {
   return 60000 / bpm / 2;
+}
+
+static void reportActiveSoundSet() {
+  if (!kitReportPending || Serial.availableForWrite() < 64) {
+    return;
+  }
+  Serial.printf("OK live KIT:%s\n", beatblocks::soundSetId(soundSetState.active));
+  kitReportPending = false;
 }
 
 static void printPattern(const char *label, const int8_t *row) {
@@ -294,16 +304,29 @@ static void pollSerial() {
       continue;
     }
     if (c == '\n') {
-      lineBuf[lineLen] = '\0';
-      handleLine(lineBuf);
+      if (!discardLine) {
+        lineBuf[lineLen] = '\0';
+        handleLine(lineBuf);
+      }
       lineLen = 0;
+      discardLine = false;
+      continue;
+    }
+    if (discardLine) {
+      continue;
+    }
+    if (c == '\0') {
+      discardLine = true;
+      lineLen = 0;
+      serialLog("ERR invalid line");
       continue;
     }
     if (lineLen + 1 < sizeof(lineBuf)) {
       lineBuf[lineLen++] = c;
     } else {
       lineLen = 0;
-      Serial.println("ERR line too long");
+      discardLine = true;
+      serialLog("ERR line too long");
     }
   }
 }
@@ -393,8 +416,10 @@ void loop() {
     setPlayhead(i);
     pollSerial();
     applyPendingIfAny();
-    if(soundSetState.atStep(i) && Serial.availableForWrite()>=64)
-      Serial.printf("OK live KIT:%s\n",beatblocks::soundSetId(soundSetState.active));
+    if (soundSetState.atStep(i)) {
+      kitReportPending = true;
+    }
+    reportActiveSoundSet();
     scanReeds();
     reportReedsIfChanged();
 
